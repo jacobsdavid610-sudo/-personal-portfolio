@@ -4,6 +4,18 @@ Notes on what I actually worked on, in the order I did it. New entries go on top
 
 ## 2026-07-29
 
+Added `scripts/mdtoc.js` — generates a GitHub-style table of contents for a
+Markdown file: extracts ATX headings, skips anything inside fenced code blocks,
+slugifies the way GitHub does (including de-duping repeated headings as
+`-1`, `-2`, ...), and either prints the TOC or writes it in place between
+`<!-- toc -->` / `<!-- tocstop -->` markers. No dependencies, plain Node.
+
+Added `tests/test_mdtoc.js` using Node's built-in test runner (`node --test`,
+no npm install needed) — heading extraction + slugifying, de-duplication,
+code-fence skipping, min/max level filtering and nested indentation, and the
+empty-range case. All 5 passing. Also ran it for real against this file in
+both print mode and `--write` mode (on a scratch copy) before committing.
+
 Added `scripts/dupefinder.py` — walks a directory, groups files by size, then by
 sha256 hash, and reports duplicate groups (bytes reclaimable, which copy would be
 kept). `--delete` removes all but the first copy in each group, with a confirmation
