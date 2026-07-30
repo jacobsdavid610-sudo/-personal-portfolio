@@ -2,6 +2,26 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-07-30
+
+Added `scripts/prune_old_files.sh` — lists (or `--delete`s, with a confirmation
+prompt unless `--yes`) files under a directory older than N days, using plain
+`find -mtime` + coreutils, no dependencies. Added
+`tests/test_prune_old_files.sh`, a small assertion-based runner (no bats/shunit2
+dependency) covering dry-run listing, the no-matches case, actual deletion via
+`--delete --yes`, and rejecting a non-numeric `--days`. 8/8 passing. Also ran it
+for real against a scratch dir with an old and a new file, both in list and
+delete mode.
+
+Added `scripts/textsearch.py` — tiny TF-IDF document search over a directory of
+`.txt`/`.md` files: term frequency weighted by inverse document frequency,
+ranked by cosine similarity against a query. Pure Python, no numpy/sklearn.
+`tests/test_textsearch.py` covers tokenizing, IDF weighting common vs. rare
+terms correctly, cosine similarity edge cases (identical/disjoint/empty
+vectors), ranking, top-n limiting, and the file-extension filter in doc
+loading. 10/10 passing. Smoke-tested against three real short documents —
+querying "sleeping cats" correctly ranked the cats document first.
+
 ## 2026-07-29
 
 Added `scripts/mdtoc.js` — generates a GitHub-style table of contents for a
