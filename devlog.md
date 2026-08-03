@@ -2,6 +2,25 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-03
+
+Added `scripts/ratelimiter.py` — a token-bucket rate limiter (`allow()` /
+`wait_time()`), clock injectable so tests don't sleep in real time. Pure
+stdlib. `tests/test_ratelimiter.py` covers capacity limits, refill over time,
+never exceeding capacity after a long idle period, rejected calls not
+consuming tokens, wait-time math, invalid constructor args, and calls with
+cost > 1. 8/8 passing. Ran the CLI for real too, once with a fast refill rate
+(everything allowed) and once with a slow one (to see it actually block and
+report a sane retry time).
+
+Added `scripts/csvparse.js` — an RFC 4180 CSV parser: quoted fields with
+embedded commas, escaped `""` quotes, embedded newlines inside quoted fields,
+and CRLF vs LF line endings. No dependencies. `tests/test_csvparse.js` (node's
+built-in test runner) covers all of the above plus files with no trailing
+newline and the `toObjects()` header-zip helper. 8/8 passing. Smoke-tested
+against a real CSV with a quoted-comma field, escaped quotes, and a
+multi-line quoted field — all parsed correctly.
+
 ## 2026-07-30
 
 Added `scripts/prune_old_files.sh` — lists (or `--delete`s, with a confirmation
