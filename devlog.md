@@ -2,6 +2,27 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-04
+
+Added `scripts/lru_cache.py` — an actual LRU cache implementation (dict for
+O(1) lookup + a doubly linked list with sentinel head/tail for O(1) recency
+updates), not just a wrapper around `functools.lru_cache`.
+`tests/test_lru_cache.py` covers eviction on overflow, `get()` refreshing
+recency so a key survives eviction, `put()` on an existing key updating both
+value and recency, `len()`, capacity-1 behavior, and invalid capacity. 9/9
+passing. Ran the CLI demo for real and checked the recency order printed
+after each `put()` by hand.
+
+Added `scripts/debounce.js` — debounce and throttle utilities (throttle is
+leading-edge, drops calls during cooldown rather than queuing them; debounce
+has a `.cancel()`). `tests/test_debounce.js` uses Node's built-in mocked
+timers (`node --test`, no sinon) to test debounce collapsing rapid calls into
+one trailing call with the latest args, `cancel()` actually preventing the
+call, and throttle's immediate-then-cooldown-then-allowed-again behavior.
+6/6 passing. Also ran both against *real*, non-mocked timers in a scratch
+script to make sure the mocked-timer tests weren't hiding something — same
+behavior both ways.
+
 ## 2026-08-03
 
 Added `scripts/ratelimiter.py` — a token-bucket rate limiter (`allow()` /
