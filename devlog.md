@@ -2,6 +2,30 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-05
+
+Added `scripts/retry.sh` — runs a command, retrying with exponential backoff
+on failure up to `--max-attempts`, propagating the real exit code. Hit a real
+bug writing the test for this: `if "$@"; then ...; fi` with no `else` clause
+always returns exit status 0 on the false branch (that's correct POSIX
+behavior for `if`, not a bug in bash) — so `status=$?` right after was always
+reading 0 instead of the failing command's actual exit code. Fixed by
+capturing `$?` immediately after running `"$@"` directly, before any `if`.
+`tests/test_retry.sh` (assertion-based, no framework) covers immediate
+success, eventual success after N failures, exhausting all attempts and
+propagating the real exit code, and rejecting a non-numeric
+`--max-attempts`. 9/9 passing after the fix. Also ran it for real against a
+script that fails twice then succeeds, and watched the backoff delay
+actually double between attempts (0.2s -> 0.4s).
+
+Added `scripts/fuzzymatch.py` — Levenshtein edit distance (O(n*m) DP) plus a
+`suggest()` "did you mean" helper that ranks candidates by normalized
+similarity. `tests/test_fuzzymatch.py` covers the textbook
+kitten/sitting=3 case, empty strings, symmetry, similarity bounds,
+ranking, `limit`, and `min_similarity` filtering. 14/14 passing. Ran the CLI
+against a real typo ("reciev" vs receive/receipt/recipe/recover) and the
+ranking looked right.
+
 ## 2026-08-04
 
 Added `scripts/lru_cache.py` — an actual LRU cache implementation (dict for
