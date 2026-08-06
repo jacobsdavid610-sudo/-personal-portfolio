@@ -5,6 +5,7 @@ stdlib - a real tokenizer/parser/evaluator, not just eval()."""
 
 import argparse
 import re
+import sys
 
 TOKEN_RE = re.compile(r"\s*(\*\*|[()+\-*/]|\d+\.\d+|\d+)")
 
@@ -30,9 +31,9 @@ def tokenize(text):
 class Parser:
     """Grammar (lowest to highest precedence):
     expr   := term (('+' | '-') term)*
-    term   := power (('*' | '/') power)*
-    power  := unary ('**' power)?      (right-associative)
-    unary  := ('+' | '-') unary | atom
+    term   := factor (('*' | '/') factor)*
+    factor := ('+' | '-') factor | power
+    power  := atom ('**' factor)?      (right-associative; exponent may be unary)
     atom   := NUMBER | '(' expr ')'
     """
 
@@ -68,10 +69,10 @@ class Parser:
         return value
 
     def term(self):
-        value = self.power()
+        value = self.factor()
         while self.peek() in ("*", "/"):
             op = self.advance()
-            rhs = self.power()
+            rhs = self.factor()
             if op == "/":
                 if rhs == 0:
                     raise ZeroDivisionError("division by zero")
@@ -80,22 +81,25 @@ class Parser:
                 value = value * rhs
         return value
 
-    def power(self):
-        value = self.unary()
-        if self.peek() == "**":
-            self.advance()
-            rhs = self.power()  # right-associative
-            value = value**rhs
-        return value
-
-    def unary(self):
+    def factor(self):
+        # Unary +/- binds *looser* than **, so -2 ** 2 == -(2 ** 2) == -4,
+        # matching standard math convention (and Python itself). The base
+        # of ** goes straight to power()/atom(), not back through factor().
         if self.peek() == "-":
             self.advance()
-            return -self.unary()
+            return -self.factor()
         if self.peek() == "+":
             self.advance()
-            return self.unary()
-        return self.atom()
+            return self.factor()
+        return self.power()
+
+    def power(self):
+        value = self.atom()
+        if self.peek() == "**":
+            self.advance()
+            rhs = self.factor()  # right-associative; exponent may be unary
+            value = value**rhs
+        return value
 
     def atom(self):
         token = self.peek()
@@ -121,8 +125,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("expression")
     args = parser.parse_args()
-    print(evaluate(args.expression))
+
+    try:
+        print(evaluate(args.expression))
+    except (ParseError, ZeroDivisionError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

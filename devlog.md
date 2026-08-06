@@ -14,6 +14,23 @@ changes, type changes, and `deepEqual`. 8/8 passing. Smoke-tested against
 two real JSON files with a mix of changed/added/nested-array differences —
 output matched expectations.
 
+Added `scripts/calc.py` — a real recursive-descent tokenizer/parser/evaluator
+for arithmetic expressions (`+ - * / **`, parens, unary +/-), not just a
+wrapper around `eval()`. Hit a genuine precedence bug while testing:
+`-2 ** 2` evaluated to `4` instead of `-4` because the grammar had unary
+minus wrapping `power()`, so it computed `(-2) ** 2` instead of
+`-(2 ** 2)`. Standard math convention (and Python itself) has unary minus
+bind *looser* than `**`. Fixed by restructuring the grammar so `factor`
+(unary) sits above `power`, with `power`'s base going straight to `atom` -
+and the exponent side of `**` still recurses through `factor` so `2 ** -2`
+and right-associative chains like `2 ** 3 ** 2` keep working.
+`tests/test_calc.py` covers precedence, right-associativity, unary
++/-, nested parens, float literals, division by zero, and several malformed-
+input cases. 15/15 passing. Also noticed the CLI dumped a raw Python
+traceback on a `ZeroDivisionError`/`ParseError` during smoke testing instead
+of a clean message - wrapped `main()` in a try/except so it now prints
+`Error: ...` to stderr and exits 1, matching the other scripts here.
+
 ## 2026-08-05
 
 Added `scripts/retry.sh` — runs a command, retrying with exponential backoff
