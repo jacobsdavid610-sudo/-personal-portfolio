@@ -2,6 +2,18 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-06
+
+Added `scripts/jsondiff.js` — deep-diffs two JSON values and reports
+added/removed/changed paths (dotted for objects, indexed for arrays),
+including type changes (e.g. a key going from object to array shows up as a
+single `changed` entry rather than a confusing recursive mismatch).
+`tests/test_jsondiff.js` covers no-diff, added/removed keys, changed
+primitives, nested-object dotted paths, array index diffing with length
+changes, type changes, and `deepEqual`. 8/8 passing. Smoke-tested against
+two real JSON files with a mix of changed/added/nested-array differences —
+output matched expectations.
+
 ## 2026-08-05
 
 Added `scripts/retry.sh` — runs a command, retrying with exponential backoff
