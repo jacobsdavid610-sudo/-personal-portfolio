@@ -2,6 +2,19 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-07
+
+Added `scripts/gitstats.sh` — commit counts per author in a git repo, via
+`git log --format=%an | sort | uniq -c | sort -rn`, with `--since` and
+`--top` filters. `tests/test_gitstats.sh` builds a real scratch git repo
+with `--allow-empty` commits from two authors and asserts against actual
+output (sort order, `--top` truncation, `--since` counting, rejecting a
+non-repo directory). 7/7 passing — caught my own test-fixture miscount
+along the way (wrote the test expecting 4 commits for Alice when the
+fixture only actually made 3; the script was right, the assertion was
+wrong). Also wrote `docs/gitstats.md`, a full README for it — starting
+today, every project gets one of these instead of just a devlog blurb.
+
 ## 2026-08-06
 
 Added `scripts/jsondiff.js` — deep-diffs two JSON values and reports
