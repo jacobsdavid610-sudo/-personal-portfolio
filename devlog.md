@@ -15,6 +15,18 @@ fixture only actually made 3; the script was right, the assertion was
 wrong). Also wrote `docs/gitstats.md`, a full README for it — starting
 today, every project gets one of these instead of just a devlog blurb.
 
+Added `scripts/template.js` — a small mustache-style templating engine:
+`{{value}}` HTML-escapes by default, `{{{value}}}` opts into raw output,
+dotted paths reach into nested objects, missing keys render as empty string
+instead of `"undefined"`. `tests/test_template.js` covers escaping all five
+HTML-significant characters, raw-vs-escaped in the same template, nested
+paths, missing/null-partway paths, and non-string values. 9/9 passing. Real
+smoke test: rendered a template with an attacker-controlled `bio` field
+containing `<script>steal(document.cookie)</script>` next to an explicitly
+trusted raw HTML field — the script tag came out as inert escaped text, the
+trusted field rendered as real markup. Wrote `docs/template.md` covering the
+escaping rationale and that exact example.
+
 ## 2026-08-06
 
 Added `scripts/jsondiff.js` — deep-diffs two JSON values and reports
