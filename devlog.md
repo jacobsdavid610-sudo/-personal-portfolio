@@ -4,6 +4,21 @@ Notes on what I actually worked on, in the order I did it. New entries go on top
 
 ## 2026-08-10
 
+Added `scripts/portcheck.sh` — checks whether a TCP `host:port` is open
+using bash's `/dev/tcp` builtin (no `nc` dependency, which turned out not to
+be installed on this machine anyway), with `--wait`/`--interval` to retry
+until a port comes up. `tests/test_portcheck.sh` runs a real
+`python -m http.server` on a scratch port as the "open" fixture and an
+adjacent unused port as "closed" - no mocked sockets. 7/7 passing. Also ran
+it standalone outside the test suite and timed the `--wait 3 --interval 1`
+retry case with `time`: real elapsed was ~9s, not the ~3-4s the interval
+math suggests, because spawning `timeout` + a fresh `bash -c` subshell per
+attempt has real process-spawn overhead on this machine. Logic's correct
+either way (confirmed via the test's generous `>= 2s` bound), but wrote it
+up in `docs/portcheck.md` since it's a genuine gotcha for anyone using this
+in a tight retry loop, not something I'd have caught without actually timing
+a real run.
+
 Added `scripts/trie.py` — a Trie (prefix tree) with `insert`, `search`
 (exact), `starts_with` (prefix check), and `autocomplete` (alphabetical,
 optional limit). `tests/test_trie.py` covers exact search hit/miss, search
