@@ -2,6 +2,21 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-10
+
+Added `scripts/trie.py` — a Trie (prefix tree) with `insert`, `search`
+(exact), `starts_with` (prefix check), and `autocomplete` (alphabetical,
+optional limit). `tests/test_trie.py` covers exact search hit/miss, search
+on an empty trie, `starts_with` on a real-but-unstored prefix, the case
+where a word is also a prefix of longer words, alphabetical ordering,
+`limit`, a nonexistent prefix, empty-prefix (returns everything), and
+inserting a duplicate word being harmless. 10/10 passing. Ran the CLI
+against a real word list (`apple`/`apply`/`apt`/`application`/`banana`/
+`band`) — autocompleting `app` correctly returned exactly the three that
+match and excluded `apt` (diverges at the third character). Wrote
+`docs/trie.md` covering the `search()` vs `starts_with()` distinction,
+which is the one subtlety worth calling out.
+
 ## 2026-08-07
 
 Added `scripts/gitstats.sh` — commit counts per author in a git repo, via
