@@ -4,6 +4,22 @@ Notes on what I actually worked on, in the order I did it. New entries go on top
 
 ## 2026-08-11
 
+Added `scripts/markov.py` — a Markov chain text generator: n-gram
+transition table built from counting what token follows what in a corpus,
+then weighted-random sampling to generate new text. Documented honestly in
+`docs/markov.md` that this is frequency counting + sampling, not a neural
+net or anything ML-model-shaped, since it'd be easy to oversell given the
+"text generation" framing. `tests/test_markov.py` (11 tests) covers the
+transition table for a known corpus (including that repeated transitions
+are kept as repeats, not deduped - that's what makes sampling weighted),
+order-3 keys, a corpus too short for the requested order, reproducibility
+via a seeded RNG (same seed -> byte-identical output), different seeds
+being able to diverge, every generated token coming from the corpus
+vocabulary, stopping cleanly when a key has no recorded continuation, and
+`max_tokens` capping length. All passing. Ran it for real against a
+3-sentence corpus about a fox and a dog and confirmed `--seed 1` gave
+identical output on two separate runs.
+
 Added `scripts/base64.js` — base64 encode/decode implemented from the actual
 bit-packing algorithm (3 bytes -> four 6-bit groups, `=` padding), not
 `Buffer.toString("base64")`/`atob`. `Buffer` is only used for the unrelated
