@@ -2,6 +2,21 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-11
+
+Added `scripts/base64.js` — base64 encode/decode implemented from the actual
+bit-packing algorithm (3 bytes -> four 6-bit groups, `=` padding), not
+`Buffer.toString("base64")`/`atob`. `Buffer` is only used for the unrelated
+UTF-8 text<->bytes conversion step, noted explicitly in `docs/base64.md` so
+the "from scratch" claim is precise about what's actually hand-written.
+`tests/test_base64.js` checks all three padding cases, round-tripping raw
+bytes including `0x00`/`0xff`, empty string, and `decode` tolerating stray
+whitespace. Importantly also checks `encodeText()` output directly against
+`Buffer.from(s, "utf8").toString("base64")` as an independent oracle, not
+just round-trip tests against itself (round-trips can pass even with a
+shared bug in both directions that cancels out). 8/8 passing. Real CLI
+round-trip test on an actual string also confirmed correct.
+
 ## 2026-08-10
 
 Added `scripts/portcheck.sh` — checks whether a TCP `host:port` is open
