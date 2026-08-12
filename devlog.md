@@ -2,6 +2,39 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-12
+
+Starting today, changes land via a feature branch + PR instead of a direct
+push to `main` — same daily commit structure as before, just opened as a PR
+first. First branch: `daily/2026-08-12`.
+
+Added `scripts/envdiff.sh` — compares two `.env`-style files and reports
+added/removed/changed keys, with values **masked by default** (`***`) since
+this is explicitly a secrets-file comparison tool; `--show-values` opts into
+real values. Same "safe default, explicit opt-in for the unsafe path"
+reasoning as `template.js`'s HTML-escaping. `tests/test_envdiff.sh` (10
+tests) covers added/removed/changed detection, unchanged keys correctly
+omitted from the diff, the raw secret value never appearing anywhere in
+default output, `--show-values` actually revealing values, identical files,
+and a missing file being a clean error. All passing. Real smoke test against
+two actual env files with a changed DB host, a rotated API key, and one
+added flag - masked by default, values visible with `--show-values`.
+
+Added `scripts/graph.py` — adjacency-list directed graph with BFS shortest
+path (unweighted, fewest edges) and topological sort (Kahn's algorithm,
+raises on a cycle). `tests/test_graph.py` (12 tests) covers direct edges,
+start==end, correctly picking the actual shortest path among multiple
+candidates (not just "a" path), unreachable/unknown nodes, that edge
+direction is respected (it's a directed graph, so b->a must not exist just
+because a->b does), a simple chain and a real multi-constraint DAG for
+topo-sort, an isolated node being included, cycle detection, and an empty
+graph. All passing. Ran the CLI for real against a JSON "getting dressed"
+dependency graph - topo-sort produced a valid order respecting every
+constraint (socks-before-shoes, underwear-before-pants-before-shoes,
+shirt-before-jacket), shortest-path found the 2-edge underwear->pants->shoes
+route, and a genuinely unreachable node (a hat with no edges) correctly
+reported "No path found." instead of erroring.
+
 ## 2026-08-11
 
 Added `scripts/markov.py` — a Markov chain text generator: n-gram
