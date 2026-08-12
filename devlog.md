@@ -2,6 +2,24 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-12
+
+Starting today, changes land via a feature branch + PR instead of a direct
+push to `main` — same daily commit structure as before, just opened as a PR
+first. First branch: `daily/2026-08-12`.
+
+Added `scripts/envdiff.sh` — compares two `.env`-style files and reports
+added/removed/changed keys, with values **masked by default** (`***`) since
+this is explicitly a secrets-file comparison tool; `--show-values` opts into
+real values. Same "safe default, explicit opt-in for the unsafe path"
+reasoning as `template.js`'s HTML-escaping. `tests/test_envdiff.sh` (10
+tests) covers added/removed/changed detection, unchanged keys correctly
+omitted from the diff, the raw secret value never appearing anywhere in
+default output, `--show-values` actually revealing values, identical files,
+and a missing file being a clean error. All passing. Real smoke test against
+two actual env files with a changed DB host, a rotated API key, and one
+added flag - masked by default, values visible with `--show-values`.
+
 ## 2026-08-11
 
 Added `scripts/markov.py` — a Markov chain text generator: n-gram
