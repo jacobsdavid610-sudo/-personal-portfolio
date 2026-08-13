@@ -2,6 +2,24 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-13
+
+Added `scripts/eventemitter.js` — a minimal pub/sub event emitter:
+`on`/`once`/`off`/`emit`, a wildcard `"*"` listener that hears every event
+(with the event name prefixed to its args), and error isolation — a
+listener that throws doesn't stop its siblings in the same `emit()` call.
+The error goes to `emitter.lastError` and is forwarded to `"error"`
+listeners instead, with a recursion guard so an `"error"` listener itself
+throwing doesn't loop forever. `tests/test_eventemitter.js` (13 tests,
+Node's built-in `node:test`) covers basic dispatch, multiple listeners
+firing in registration order, `once()` auto-removal, both forms of
+`off()`, the wildcard behavior, both error-isolation paths, `emit()`'s
+boolean return value, `listenerCount()`, method chaining, and the
+non-function-listener TypeError. All passing. Real smoke test: a small
+"login" event bus with a regular listener, a wildcard logger, and a
+`once()` bonus handler — confirmed the bonus fires only on the first
+`emit()`, everything else fires on both.
+
 ## 2026-08-12
 
 Starting today, changes land via a feature branch + PR instead of a direct
