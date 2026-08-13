@@ -20,6 +20,21 @@ non-function-listener TypeError. All passing. Real smoke test: a small
 `once()` bonus handler — confirmed the bonus fires only on the first
 `emit()`, everything else fires on both.
 
+Added `scripts/dirsize.sh` — reports the largest immediate entries (files
+and directories, directories sized recursively via `du -sb`) under a
+path, sorted descending, human-readable by default, with `-n` to limit
+how many print, `--threshold SIZE` to flag entries at or above a cutoff,
+and `--bytes` for raw counts. `tests/test_dirsize.sh` (19 tests) covers
+sort order across genuinely far-apart sizes (3M/500K/100K/20B, so no
+rounding could put two entries in striking distance of each other),
+correct human-readable formatting, `--bytes` exact counts, `-n` limiting
+output while the summary still counts every entry, `--threshold` flagging
+correctly, an empty directory, a missing path, and a non-numeric `-n`.
+All passing. Real smoke test against this repo itself
+(`dirsize.sh . -n 5 --threshold 50K`) — `.git`, `tests`, and `scripts`
+correctly flagged over the 50K threshold, `docs` and `devlog.md` correctly
+left unmarked.
+
 ## 2026-08-12
 
 Starting today, changes land via a feature branch + PR instead of a direct
