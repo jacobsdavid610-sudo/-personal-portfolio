@@ -19,6 +19,22 @@ output, and the empty-input case. All passing. Real smoke test against a
 produced correct output, and the garbage line was cleanly excluded from
 every mode while still being counted as 1 unparsed line.
 
+Added `scripts/querystring.js` — URL query string `parse`/`stringify`
+built from scratch (no `URLSearchParams`), following the
+`application/x-www-form-urlencoded` convention (`+` for spaces).
+`tests/test_querystring.js` (14 tests) covers single and repeated keys
+(repeats collect into an array instead of overwriting), a leading `?`
+being stripped, a key with no `=` becoming an empty string, percent- and
+`+`-decoding, the empty-string case, non-string `parse()` input throwing,
+`stringify`'s array-to-repeated-keys behavior, `null`/`undefined` values
+being skipped entirely (not emitted as `key=`), special-character
+encoding, non-plain-object `stringify()` inputs throwing, and a full
+round-trip. All passing. Real smoke test: parsed a URL with a
+plus-encoded name, a repeated `tag` key, and a bare flag; built a query
+string from an object with a `null` value (correctly omitted) and an
+array value (correctly repeated); round-tripped it back to the original
+shape.
+
 ## 2026-08-13
 
 Added `scripts/eventemitter.js` — a minimal pub/sub event emitter:
