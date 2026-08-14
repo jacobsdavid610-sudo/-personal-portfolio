@@ -2,6 +2,23 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-14
+
+Added `scripts/logparse.py` — parses simple leveled log lines
+(`<ISO8601 timestamp> <LEVEL> <message>`), filters by minimum severity
+and/or an inclusive time range, and summarizes counts per level.
+`tests/test_logparse.py` (18 tests) covers well-formed parsing, malformed
+lines / bad timestamps / unrecognized levels / blank lines all correctly
+returning `None`, blank lines specifically *not* counting against the
+unparsed tally (they're not malformed, just empty), severity filtering,
+inclusive `since`/`until` bounds and all three filters combined,
+`summarize()`'s counts and its fixed-severity-order (not first-seen)
+output, and the empty-input case. All passing. Real smoke test against a
+7-line sample log with one intentionally garbage line: default run,
+`--level ERROR`, `--summary`, and a `--since`/`--until` window all
+produced correct output, and the garbage line was cleanly excluded from
+every mode while still being counted as 1 unparsed line.
+
 ## 2026-08-13
 
 Added `scripts/eventemitter.js` — a minimal pub/sub event emitter:
