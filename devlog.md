@@ -2,6 +2,24 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-15
+
+Added `scripts/loc.sh` — a tiny `cloc`-alike: counts lines of code per
+file extension under a directory, `.git`/`node_modules`/`__pycache__`/
+`.venv` pruned by default, `--exclude` for more, `--no-blank` to count
+only non-blank lines. `tests/test_loc.sh` (10 tests) covers per-extension
+totals across nested directories, the "(no extension)" bucket counting
+real no-extension files but specifically *not* a pruned `.git/config`
+(whose own basename also lacks an extension — the case that would
+silently inflate the count if pruning were broken), `--no-blank`'s
+non-blank-only totals, `--exclude` pruning an extra directory beyond the
+defaults, an empty directory, and a missing path. All passing (after
+fixing two arithmetic mistakes in my own fixture's expected counts — I'd
+mentally logged `b.py`'s "0 blank lines" as "0 non-blank lines", which
+are opposites). Real smoke test against this repo itself
+(`loc.sh . --exclude .venv --exclude __pycache__`) — correctly broke down
+py/sh/md/js/no-extension across all 62 tracked files.
+
 ## 2026-08-13
 
 Added `scripts/eventemitter.js` — a minimal pub/sub event emitter:
