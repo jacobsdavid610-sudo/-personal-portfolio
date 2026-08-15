@@ -20,6 +20,24 @@ are opposites). Real smoke test against this repo itself
 (`loc.sh . --exclude .venv --exclude __pycache__`) — correctly broke down
 py/sh/md/js/no-extension across all 62 tracked files.
 
+Added `scripts/ini_parser.py` — parses and serializes simple INI-style
+config (`[section]` headers, `key = value` or `key: value`, `;`/`#`
+comments, optionally quoted values) into `{section: {key: value}}` and
+back. `tests/test_ini_parser.py` (16 tests) covers basic section/key
+parsing, keys before any section landing in the `""` section, full-line
+and trailing comments being stripped, a comment marker mid-value with no
+preceding whitespace correctly surviving (so a URL fragment doesn't get
+truncated), quoted values being unquoted, blank lines, a later key
+overwriting an earlier one, a repeated section header merging into the
+same dict, the empty-input case, a malformed line raising with the
+correct line number, `:` as an alternate separator, and `dump()`'s
+ordering, empty-input, and round-trip behavior. All passing. Real smoke
+test against a sample config with a full-line comment, a trailing
+comment, a quoted value with spaces, and a URL containing `#` — the
+trailing comment was correctly stripped while the URL's `#replica-1`
+correctly survived untouched, exactly the distinction the parser is
+supposed to make.
+
 ## 2026-08-13
 
 Added `scripts/eventemitter.js` — a minimal pub/sub event emitter:
