@@ -2,6 +2,35 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-17
+
+Added `scripts/huffman.py` — a real Huffman coding compressor/decompressor:
+builds a binary tree from byte frequencies via a min-heap, generates
+prefix-free codes, and packs them into a small self-contained binary format
+(magic + original length + frequency table + packed bits). Handles the
+degenerate single-symbol and empty-input cases explicitly instead of
+crashing on a zero-length code. `tests/test_huffman.py` (12 tests) covers
+round-tripping empty input, a single repeated byte, ordinary text, all 256
+byte values, random binary data, and that a skewed distribution actually
+compresses smaller than the input — plus a direct check of the Huffman
+prefix property (no code is a prefix of another) and that more frequent
+symbols never get longer codes than rarer ones. All passing. Smoke-tested
+for real: compressed a 9000-byte sample text to 5175 bytes (57.5%) and
+diffed the decompressed output against the original — identical.
+
+Added `scripts/gitprune.sh` — lists (or `--delete`s, with a confirmation
+prompt unless `--yes`) local git branches already merged into a base branch
+(auto-detects `main`/`master`, or takes `--base`), always excluding the base
+branch and whichever branch is currently checked out. Uses `git branch -d`
+(never `-D`) so it can't discard unmerged work. `tests/test_gitprune.sh`
+(11 tests) builds a real scratch repo with a merged branch and an unmerged
+branch with its own commit, and asserts the merged one gets listed and
+deleted while the unmerged one and the base branch are never touched, plus
+rejection of a bad `--base` and a non-repo directory. All passing. Also ran
+it for real against a scratch repo with two merged branches and one
+unmerged branch — dry run and `--delete --yes` both behaved exactly as
+expected.
+
 ## 2026-08-15
 
 Added `scripts/loc.sh` — a tiny `cloc`-alike: counts lines of code per
