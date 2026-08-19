@@ -2,6 +2,35 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-19
+
+Added `scripts/heap.js` — an array-backed binary min-heap / priority queue:
+`push`/`pop`/`peek` in `O(log n)` (`O(1)` for `peek`), plus a static
+`heapify()` that builds a heap from an existing array in `O(n)` via the
+standard bottom-up sift-down construction, instead of `O(n log n)` from
+individual pushes. Takes an optional comparator so it doubles as a max-heap
+or a priority queue over objects. `tests/test_heap.js` (12 tests, Node's
+built-in test runner) covers ascending pop order, peek without removal,
+size tracking, both empty-heap error cases, duplicate values, a custom
+max-heap comparator, an object priority queue, `heapify` correctness, and a
+500-element randomized input checked against `Array.prototype.sort`. All
+passing. Smoke-tested for real as a task priority queue — pushed four
+`{task, priority}` objects out of order and popped them back out in
+priority order.
+
+Added `scripts/logparse.py` — parses Apache/Nginx "combined" access log
+lines via a single regex and reports status code counts, top client IPs,
+top request paths, and total bytes transferred. Non-conforming lines are
+counted as `skipped` rather than raising, and a `-` byte count is treated
+as `0`, both real cases in production log files. `tests/test_logparse.py`
+(12 tests) covers field parsing, the `-` byte case, malformed/empty lines
+returning `None` instead of raising, full `analyze()` totals across a mixed
+sample (matched/skipped counts, per-status, per-IP, per-path, byte sum), an
+empty input, and `format_report()`'s `--top` truncation. All passing.
+Smoke-tested for real against a 7-line sample log (including one deliberately
+malformed line) both as a file argument and piped through stdin — output
+matched expectations both ways.
+
 ## 2026-08-17
 
 Added `scripts/huffman.py` — a real Huffman coding compressor/decompressor:
