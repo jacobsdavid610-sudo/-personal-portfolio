@@ -2,6 +2,36 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-20
+
+Added `scripts/cronparse.sh` — validates a 5-field cron expression and
+describes it in plain English (e.g. `*/15 * * * *` -> "Runs every 15
+minutes."). Supports `*`, `*/N` steps, single values, `A-B` ranges, and
+plain-number comma lists per field, with real bounds checking (minute
+0-59, hour 0-23, day-of-month 1-31, month 1-12, day-of-week 0-7 with both
+0 and 7 meaning Sunday) and specific error messages for backwards ranges,
+zero/negative steps, and non-numeric values. `tests/test_cronparse.sh`
+(14 tests) checks exact output strings for each field-syntax variant, all
+five fields combining into one sentence, the Sunday alias, and seven
+distinct rejection cases. All passing. Smoke-tested for real against a
+dozen expressions before writing the tests, including a mixed-list-item
+rejection and a backwards-range rejection, to lock down the exact wording
+the tests now check.
+
+Added `scripts/linediff.js` — a from-scratch line diff via longest common
+subsequence, printed unified-diff style (`-`/`+`/` ` prefixes, collapsible
+context like `diff -u`). `tests/test_linediff.js` (13 tests) covers
+identical inputs, single add/delete, a replaced line rendering as
+delete-then-add, fully disjoint inputs, both empty-vs-non-empty
+directions, `hasChanges` accuracy, both default and zero-context
+formatting, and a longer diff confirming unchanged lines stay intact
+around a single change. All passing. Smoke-tested for real as a CLI
+against two actual files — caught and fixed a real bug in the process:
+naively splitting a file's content on `"\n"` produces a phantom empty
+trailing line when the file ends in a newline (which almost all text files
+do), showing up as a spurious extra blank diff line; fixed by stripping
+exactly one trailing empty element after the split.
+
 ## 2026-08-19
 
 Added `scripts/heap.js` — an array-backed binary min-heap / priority queue:
