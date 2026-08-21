@@ -2,6 +2,37 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-21
+
+Added `scripts/logrotate.sh` — rotates a log file past a size threshold
+(`app.log` -> `app.log.1.gz`, shifting older generations up to `.2.gz`,
+`.3.gz`, ... and dropping anything beyond `--keep`), gzip-compressed by
+default with a `--no-compress` plain-text option. `tests/test_logrotate.sh`
+(18 tests) covers the no-op-under-threshold case, a first rotation
+preserving content and truncating the original, a second rotation
+correctly shifting `.1.gz` to `.2.gz`, `--no-compress` output, `--keep 0`,
+the retention cap actually dropping older content on a third rotation, and
+rejection of a missing file and a non-numeric `--max-size`. All passing.
+Smoke-tested for real against scratch files first and caught a real bug in
+the process: with `--keep 0` the completion message claimed the content
+was rotated to a `.1.gz` file that was never actually created (content was
+silently discarded instead) — fixed the message to honestly say
+"discarded" before writing the test suite around the corrected behavior.
+
+Added `scripts/promisepool.js` — runs an array of async tasks with a
+concurrency cap, resolving with results in original task order regardless
+of completion order. Takes a `stopOnError` option: fail-fast (default,
+matching `Promise.all`) or collect every result `allSettled`-style even
+after failures. `tests/test_promisepool.js` (9 tests) covers order
+preservation, the concurrency cap never being exceeded (checked via a live
+counter, not inferred from timing), concurrency exceeding the task count,
+an empty task list, strictly-sequential behavior at concurrency 1, both
+`stopOnError` modes, a synchronous throw being treated as a rejection, and
+`concurrency < 1` throwing. All passing. Smoke-tested for real with six
+simulated randomized-duration fetches at a concurrency cap of 2 — max
+concurrent tasks observed live via a counter never exceeded 2, and results
+came back in the original `a..f` order despite finishing out of order.
+
 ## 2026-08-20
 
 Added `scripts/cronparse.sh` — validates a 5-field cron expression and
