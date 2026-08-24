@@ -2,6 +2,41 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-24
+
+Added `scripts/sslcheck.sh` — reports how many days remain before a TLS
+certificate expires (live `host:port` via `openssl s_client`, or a local
+cert file), exiting 0/1/2 for OK/WARN/EXPIRED so it can be used directly
+as a monitoring check. `tests/test_sslcheck.sh` (13 tests) runs entirely
+against real `openssl`-generated certificates in a scratch dir — a
+far-future cert, a ~4-day cert crossing the default warn threshold, the
+same cert flipping back to OK under a tighter `--warn-days`, and a cert
+with an explicit past validity window reporting EXPIRED — plus rejection
+of a missing file, host+file given together, no arguments, and a
+non-numeric `--warn-days`. All passing. Hit a real MSYS/Git-Bash gotcha
+while building the test fixtures: a single leading slash in `-subj
+"/CN=test"` gets silently path-converted to a Windows path before
+reaching the native `openssl.exe`, corrupting the subject; fixed by using
+`"//CN=test"` (the standard MSYS escape) instead of reaching for
+`MSYS_NO_PATHCONV=1`, which broke resolving `mktemp -d`'s `/tmp/...` paths
+instead. Also smoke-tested for real against a live host (`github.com`,
+correctly reported 37 days remaining) in addition to the local fixtures.
+
+Added `scripts/wordwrap.js` — wraps plain text to a fixed column width,
+breaking at word boundaries, preserving blank-line paragraph breaks, and
+hard-breaking any single word longer than the width instead of letting it
+overflow. Takes an optional `indent` that counts against the requested
+width rather than pushing lines past it. `tests/test_wordwrap.js`
+(11 tests) covers text that already fits, breaking only at word
+boundaries, whitespace collapsing, empty input, a long word hard-breaking
+into exact-width chunks (both standalone and mid-paragraph after topping
+off the current line), paragraph preservation, internal-newline
+collapsing, indent behavior, a non-positive width throwing, and
+independent wrapping of multiple paragraphs. All passing. Smoke-tested for
+real against an actual two-paragraph text file at several widths and with
+an indent, plus piped through stdin — output matched expectations in
+every case.
+
 ## 2026-08-21
 
 Added `scripts/logrotate.sh` — rotates a log file past a size threshold
