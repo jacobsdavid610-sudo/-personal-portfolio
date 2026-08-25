@@ -2,6 +2,39 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-25
+
+Added `scripts/ipcalc.py` — IPv4 subnet calculator: given an address in
+CIDR notation, reports the network/broadcast address, netmask, wildcard
+mask, usable host range, and host counts, built on stdlib `ipaddress`.
+Handles `/31` (RFC 3021 point-to-point, both addresses usable) and `/32`
+(single host) as explicit special cases rather than letting the normal
+"first and last address reserved" math silently produce zero or negative
+usable hosts. `tests/test_ipcalc.py` (11 tests) covers a typical `/24`, a
+small `/30`, the `/31` and `/32` edge cases, a large `/8`, the
+entire-address-space `/0`, host bits being masked out of the reported
+network while preserved in the original address, the wildcard mask being
+the netmask's inverse, and rejection of an unparseable address and an
+out-of-range prefix. All passing. Smoke-tested for real against `/24`,
+`/30`, and `/32` inputs and checked the output by hand against known
+subnet math.
+
+Added `scripts/jwtdecode.js` — decodes a JWT's header and payload for
+inspection (base64url decode + JSON pretty-print, plus a human-readable
+summary of `iat`/`nbf`/`exp`), with signature verification explicitly and
+deliberately out of scope — the CLI prints a reminder of that on every run
+so it can't be mistaken for an auth check. `tests/test_jwtdecode.js`
+(10 tests) covers decoding a well-formed token, round-tripping data whose
+base64 form would need `+`/`/`/padding characters (proving the base64url
+substitution is correct in both directions), all three padding-length
+cases directly, rejecting a wrong segment count and invalid-JSON header/
+payload separately, rejecting a non-string input, claim-description
+formatting including a correctly-flagged expired token, and the
+no-standard-claims-present case. All passing. Smoke-tested for real by
+constructing an actual signed-shaped JWT (fake signature, real header/
+payload) and decoding it via the CLI — timestamps and claims all printed
+correctly.
+
 ## 2026-08-24
 
 Added `scripts/sslcheck.sh` — reports how many days remain before a TLS
