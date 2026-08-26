@@ -2,6 +2,39 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-26
+
+Added `scripts/checksum-verify.sh` — generates or verifies a manifest of
+SHA-256 checksums for every file under a directory, reporting MISMATCH,
+MISSING, and EXTRA files separately instead of a flat pass/fail like plain
+`sha256sum -c`. `tests/test_checksum-verify.sh` (18 tests) covers
+well-formed hash generation checked directly against `sha256sum`'s own
+output, `--out` writing a real manifest, a clean verify, a dirty tree
+catching one of each failure mode simultaneously with the correct exit
+code, an empty directory, and four argument-validation error cases. All
+passing. Hit a real bug while smoke-testing on this platform before
+writing the tests: GNU `sha256sum` prefixes its output line with a literal
+backslash whenever the given path contains a backslash — true of every
+path here — and that marker was leaking into the stored hash via a naive
+`cut -d' ' -f1`, silently corrupting every checksum in the manifest. Fixed
+by stripping the leading backslash before extracting the hash field.
+
+Added `scripts/sudoku_solver.py` — solves a 9x9 Sudoku via backtracking
+with row/column/box constraint checking. Validates the input isn't
+already contradictory before attempting to solve, so an already-broken
+puzzle fails immediately with a clear message instead of searching a
+space that can never succeed. `tests/test_sudoku_solver.py` (15 tests)
+covers both accepted input formats, malformed-input rejection,
+placement-validity checks for each of the three constraint types
+individually, solving a known puzzle to its known solution, confirming
+the solved grid is a fully valid Sudoku (every row/column/box a genuine
+permutation of 1-9, not just non-empty), an already-solved grid passing
+through unchanged, a contradictory grid correctly failing, and the
+formatted output's box separators. All passing. Smoke-tested for real
+against an actual puzzle file (solved correctly, verified by eye) and via
+stdin, plus a deliberately broken puzzle to confirm it's rejected before
+the solver even starts searching.
+
 ## 2026-08-25
 
 Added `scripts/ipcalc.py` — IPv4 subnet calculator: given an address in
