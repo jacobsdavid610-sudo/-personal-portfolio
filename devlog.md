@@ -2,6 +2,37 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-27
+
+Added `scripts/colorconvert.js` — converts colors between hex, RGB, and
+HSL, implementing the real max/min/delta-based conversion formulas rather
+than an approximation. `tests/test_colorconvert.js` (17 tests) covers hex
+parsing (6-digit, no-`#`, 3-digit shorthand expansion, case-insensitivity,
+invalid-input rejection), hex formatting and its range/integer validation,
+RGB->HSL for pure red/white/black/neutral-gray (each a known,
+hand-verifiable value) plus a real-world color's exact conversion,
+HSL->RGB round-tripping the same known colors, out-of-0-360 hues wrapping
+correctly, and a full hex->RGB->hex round trip landing on the exact
+original string. All passing. Smoke-tested for real across all three
+input formats via the CLI, including confirming that hex->HSL->RGB
+rounding drift (52 vs. 51 on one channel) is harmless: converting the
+drifted RGB back to HSL still lands on the identical HSL value.
+
+Added `scripts/envcheck.sh` — checks that a list of required environment
+variables are set and non-empty in the current shell, reporting MISSING
+and EMPTY separately (an unset var and a var deliberately set to ""
+usually mean different things went wrong). Takes variable names directly
+or via a `--file` list that skips comments and blank lines.
+`tests/test_envcheck.sh` (16 tests) runs against a real shell environment
+with actually-exported variables (not mocked) — a mixed set/empty/missing
+case reported correctly with the right exit code, a fully-satisfied check
+exiting 0, `--file` correctly skipping comments/blanks while checking the
+real names, and five distinct rejection cases (invalid name, digit-leading
+name, no arguments, missing requirements file, `--file` combined with
+positional args). All passing. Smoke-tested for real by exporting actual
+environment variables in the shell first and running the script directly
+against them before writing any of the formal tests.
+
 ## 2026-08-26
 
 Added `scripts/checksum-verify.sh` — generates or verifies a manifest of
