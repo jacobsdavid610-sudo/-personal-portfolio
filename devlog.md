@@ -2,6 +2,43 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-28
+
+Added `scripts/statemachine.js` — a small finite state machine: named
+states, named events with optional guards, and onEnter/onExit hooks
+around each transition. `tests/test_statemachine.js` (13 tests) covers
+starting state, an unknown-initial-state throw, a defined event
+transitioning and returning true, an undefined event being a no-op
+returning false, a full cycle, `can()`, `history` recording every state
+(including the initial one) and returning a mutation-safe copy,
+onEnter/onExit firing in the correct order, a failing guard blocking the
+transition, a passing guard letting it through, shared mutable context,
+and an undefined transition target throwing. All passing. Smoke-tested
+for real by modeling a small order-processing workflow (pending -> paid
+-> shipped, with a guard on payment amount) and confirming the guard
+correctly blocked/allowed the transition and hooks fired in order.
+
+Added `scripts/processwatch.sh` — checks whether a process is alive by
+PID/pidfile or a best-effort name pattern, optionally running a restart
+command and re-checking if it isn't. Hit two real, non-obvious bugs while
+building and smoke-testing this one, both fixed before writing the test
+suite: (1) this platform's `ps -W` fallback (used since neither `pgrep`
+nor POSIX `ps -eo` exist here) only exposes a process's executable path,
+never its actual arguments, meaning `--pattern` against a script name can
+never match here — discovered by testing against a real launched script
+and getting a false NOT-RUNNING result, then confirmed by inspecting raw
+`ps -W` output directly; documented as a platform-dependent limitation
+rather than silently left broken, with `--pid`/pidfile promoted to the
+primary, reliable mode (`kill -0`, portable everywhere) instead.
+(2) the resolved PID from a pidfile was being cached once at startup, so
+after `--restart-cmd` rewrote the pidfile with a new PID, the
+restart-confirmation retry loop kept checking the stale PID and always
+reported failure even when the restart genuinely worked; fixed by
+re-reading the pidfile fresh on every liveness check.
+`tests/test_processwatch.sh` (16 tests) runs entirely against real
+backgrounded processes and real PIDs, including the full restart path
+against an actual pidfile-rewriting restart command. All passing.
+
 ## 2026-08-27
 
 Added `scripts/colorconvert.js` — converts colors between hex, RGB, and
