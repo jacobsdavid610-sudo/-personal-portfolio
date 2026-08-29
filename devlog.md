@@ -2,6 +2,39 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-29
+
+Added `scripts/polynomial.py` — single-variable polynomial arithmetic:
+add, subtract, multiply, Horner's-method evaluation, and differentiation.
+Trims trailing zero coefficients on every construction so degree always
+reflects the true highest non-zero term. `tests/test_polynomial.py`
+(26 tests) covers construction edge cases (trailing zeros, all-zero,
+empty input, degree tracking), all four arithmetic operations including a
+resulting zero leading term getting trimmed and a polynomial minus itself
+being zero, Horner evaluation against hand-computed values, derivatives
+including a constant's derivative and a second derivative, string
+formatting (multi-term, negative middle terms, the zero polynomial,
+coefficient-1 omission), and coefficient-string parsing. All passing.
+Smoke-tested for real via the CLI across formatting, evaluation, and
+derivative modes, checked by hand against the math.
+
+Added `scripts/urlcheck.sh` — checks a URL's HTTP status code and response
+time via curl, reporting OK/WARN/FAIL against an expected status and an
+optional latency threshold; distinct exit codes for "wrong status/too
+slow" (1) vs. "couldn't connect at all" (2). `tests/test_urlcheck.sh`
+(17 tests) runs against real live requests to example.com (IANA-reserved
+for exactly this use, so it's a stable target) — a real 200 reporting OK,
+a genuine 404 path matching an `--expect-status 404` check, a status
+mismatch reporting FAIL, an impossibly tight 1ms latency threshold
+reliably triggering WARN against a real network round trip, a generous
+threshold not triggering it, an unreachable host hitting the hard-failure
+exit code, and three argument-validation rejections. All passing. Skips
+cleanly instead of failing outright if there's no network access.
+Smoke-tested by hand against example.com first (correct/wrong status,
+tight/loose latency thresholds, and a genuinely unreachable host) before
+the millisecond-parsing logic (dodging bc/awk float math by exploiting
+curl's fixed 6-decimal-digit time_total format) went into the test suite.
+
 ## 2026-08-28
 
 Added `scripts/statemachine.js` — a small finite state machine: named
