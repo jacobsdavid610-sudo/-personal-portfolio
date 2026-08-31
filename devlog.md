@@ -2,6 +2,38 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-08-31
+
+Added `scripts/asciitable.js` — renders an array of objects as a bordered
+ASCII table, with optional explicit column selection/ordering/renaming.
+`tests/test_asciitable.js` (10 tests) covers inferred vs. explicit
+columns, column width taking the max of header and every cell, header
+renaming, subset selection, null/undefined rendering as empty rather than
+literal text, and the empty-input cases. All passing. Caught a real bug
+while writing the tests, not just a miscounted expectation (though there
+was also one of those, fixed alongside it): an empty `rows` array with an
+explicit `columns` list rendered a doubled closing border, since the
+header-separator border and the final border were pushed unconditionally
+as two separate lines that become identical and adjacent when there are
+zero rows between them. Fixed by only pushing the closing border when at
+least one data row exists. Smoke-tested for real against actual JSON data
+via the CLI, both from a file and piped through stdin.
+
+Added `scripts/tarbackup.sh` — creates a timestamped `.tar.gz` backup of a
+directory, pruning old backups beyond `--keep`. Hit a real, classic
+gotcha immediately while smoke-testing: GNU tar treats an archive path
+starting with a drive letter and colon (`C:\Users\...` - every absolute
+path on this platform) as a remote `host:file` spec and tries to shell
+out over SSH, failing with `Cannot connect to C: resolve failed` instead
+of just writing the file. Fixed with `--force-local` on every tar
+invocation. `tests/test_tarbackup.sh` (15 tests) covers a real backup
+producing a non-empty archive that genuinely contains the source's files
+(verified by listing the archive's actual contents), the retention logic
+correctly pruning the 2 oldest of 5 fabricated backups with controlled
+timestamps, `--dry-run` provably not creating or deleting anything while
+still reporting what it would do, and three argument-validation
+rejections. All passing.
+
 ## 2026-08-29
 
 Added `scripts/polynomial.py` — single-variable polynomial arithmetic:
