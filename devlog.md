@@ -2,6 +2,28 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-01
+
+Added `scripts/jsonschema_lite.py` — a minimal JSON-Schema-style validator:
+`type`, `enum`, `required`, `properties`, `items`, `minLength`/`maxLength`,
+`minimum`/`maximum`, `pattern`, `additionalProperties`. Pure stdlib, no
+`jsonschema` dependency. The annoying detail I made sure to actually handle:
+Python's `bool` is a subclass of `int`, so a naive `isinstance(x, int)` type
+check would silently accept `True`/`False` in an `integer` or `number`
+field — `_check_type` explicitly excludes `bool` from both. `type` checks
+also short-circuit the rest of that node's checks, so a wrong-type value
+doesn't also spam `minimum`/`pattern` errors that are meaningless against
+it. `tests/test_jsonschema_lite.py` (20 tests) covers every type passing
+and failing, the bool-vs-integer/number distinction, union types, an
+unknown type raising `SchemaError` instead of silently no-op'ing, enum,
+string/array length limits, numeric bounds, regex patterns, array `items`
+with the index threaded into the error path, required/missing properties,
+`additionalProperties: false` rejecting extras (and the default allowing
+them), multiple errors collected together instead of stopping at the
+first, and a nested array-of-objects case. All passing. Smoke-tested for
+real via the CLI against a sample JSON file and schema — correctly caught
+an extra property not in the schema and exited 1.
+
 ## 2026-08-31
 
 Added `scripts/asciitable.js` — renders an array of objects as a bordered
