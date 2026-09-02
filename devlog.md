@@ -2,6 +2,27 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-02
+
+Added `scripts/csvstringify.js` — the writer counterpart to `csvparse.js`:
+an RFC 4180 CSV serializer that quotes a field only when it actually needs
+it (contains a comma, a double quote, or a line break) and doubles
+embedded quotes, instead of either a naive `join(",")` that breaks on real
+data or quoting every field unconditionally. Defaults to CRLF line endings
+per spec, matching what `csvparse.js` already reads. `fromObjects`/
+`stringifyObjects` take an array of objects and infer the header row from
+the union of every record's keys (first-seen order), filling a missing key
+with an empty field rather than `"undefined"`; an explicit `headers` array
+overrides the order/subset. `tests/test_csvstringify.js` (12 tests) covers
+quoting for each of the three trigger characters, `null`/`undefined`
+becoming an empty field, plain values staying unquoted, row/full-text
+joining, the empty-input case, header inference and explicit ordering, and
+two full round-trips through `parseCsv`/`toObjects` to confirm the two
+scripts actually interoperate rather than just each passing their own
+tests in isolation. All passing. Smoke-tested the CLI against a real JSON
+file with a field containing both a comma and an embedded quote, and
+against array-of-arrays input, before committing.
+
 ## 2026-09-01
 
 Added `scripts/jsonschema_lite.py` — a minimal JSON-Schema-style validator:
