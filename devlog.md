@@ -2,6 +2,30 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-03
+
+Added `scripts/diskalert.sh` — checks filesystem usage percentage for one
+or more paths against `--warn`/`--critical` thresholds and exits
+Nagios/Icinga-plugin-style: `0` OK, `1` WARNING, `2` CRITICAL, `3` UNKNOWN,
+using the worst status across all paths given as the overall exit code.
+Uses `df -P` specifically (not plain `df`) because the POSIX format
+guarantees one line of output per filesystem, where the default format can
+wrap a long device name onto a second line and break column parsing —
+found that the hard way by testing against this machine's real, unusually
+long Git-for-Windows mount path before settling on `-P`. A non-numeric
+`Capacity` column (some virtual/network filesystems report one) is treated
+as UNKNOWN rather than silently coerced to 0 or crashing on the integer
+comparison. `tests/test_diskalert.sh` (14 tests) stubs `df` via a fake
+executable prepended onto `PATH` so percentages are fully controlled
+instead of depending on the test machine's actual disk usage: each status
+bucket, custom thresholds shifting a percentage between buckets, multiple
+paths reporting the worst one as the overall exit code, a nonexistent path
+failing fast before any `df` call, and both a non-numeric threshold and
+`--warn` > `--critical` being rejected. All passing. Also ran it for real
+(unstubbed) against `.` and against `/no/such/path` before writing the
+mocked tests, to make sure the real `df -P` output actually parses the way
+I assumed.
+
 ## 2026-09-02
 
 Added `scripts/csvstringify.js` — the writer counterpart to `csvparse.js`:
