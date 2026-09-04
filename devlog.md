@@ -2,6 +2,28 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-04
+
+Added `scripts/jsonpath.js` — a small subset of JSONPath: dot keys,
+`['bracket keys']` for names that aren't valid dotted identifiers, numeric
+array indices, and `*` wildcards (`.*`/`[*]`) over both arrays and
+objects. No dependencies. A wildcard over an object yields `Object.values()`
+rather than keys, since pulling a field across every entry of a map-shaped
+object is the actual common case. Deliberately not full JSONPath — no
+filter expressions, no recursive descent, no slicing, no negative
+indices — just enough to walk into nested JSON and pull a field or list of
+fields without shelling out to `jq`. `tests/test_jsonpath.js` (14 tests)
+covers the root path, plain and bracket-quoted key access, numeric
+indexing, array and object wildcards, missing keys/out-of-range indices
+returning an empty match list instead of throwing (a genuine miss, not an
+error) versus an actually malformed path (missing `$`, an unrecognized
+token) throwing synchronously, `queryOne`'s first-match/`undefined`
+behavior, and a wildcard chained into a key that's absent on some elements
+correctly dropping those elements instead of collecting `undefined`s. All
+passing. Smoke-tested against a small nested JSON fixture via both the
+module API and the CLI before writing the formal tests, including the
+no-match case to confirm the CLI's exit-1 convention.
+
 ## 2026-09-03
 
 Added `scripts/diskalert.sh` — checks filesystem usage percentage for one
