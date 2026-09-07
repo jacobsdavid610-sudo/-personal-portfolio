@@ -2,30 +2,28 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
-## 2026-09-07
+## 2026-09-05
 
-Added `scripts/envtemplate.sh` — renders a template file's `${VAR}`
-placeholders from the environment, but unlike plain `envsubst`, a
-genuinely **unset** variable is a hard error by default; a variable
-deliberately set to `""` is fine and substitutes as empty. Checked with
-`[ -v "$var" ]` rather than `[ -n "$var" ]`, since those two are different
-questions and conflating them is exactly the footgun this exists to avoid
-(a typo'd placeholder name silently rendering as blank in a real config
-file, instead of failing loudly). Substitution itself is done with bash's
-own `${string//search/replace}` parameter expansion rather than `sed`,
-specifically so a secret value containing `&`, `/`, or a backslash can't
-get misinterpreted as a `sed` backreference or delimiter and corrupt the
-output. `--only VAR,VAR,...` restricts both substitution AND the
-missing-variable check to just the named variables, so a template that
-also references some other tool's placeholder doesn't fail just because
-that one happens to be unset in this invocation's environment.
-`tests/test_envtemplate.sh` (15 tests), against real scratch template
-files and a real environment, no mocking needed: the empty-but-set case,
-the genuinely-unset error case (with the variable name actually appearing
-in the message), `--allow-unset` recovering it, `--only`'s substitution
-and missing-check scoping, a no-placeholders template passing through
-unchanged, a missing template file, and a bare invocation with no
-arguments. All passing.
+Added `scripts/semver.py` — a Semantic Versioning (semver.org) parser and
+comparator: `Version.parse()`, directly-orderable `Version` objects via
+`functools.total_ordering`, plus `compare()`/`sort_versions()` string
+convenience wrappers. The part worth actually getting right is prerelease
+precedence: identifiers are compared per dot-separated field as either an
+integer or an ASCII string (never as one whole string), so `beta.2 <
+beta.11` comes out correctly instead of following plain string-sort order
+(which would put "11" before "2"); a numeric identifier always ranks
+lower than an alphanumeric one at the same position; a longer prerelease
+with a matching prefix outranks a shorter one; and a real release always
+outranks any prerelease of the same major.minor.patch. Build metadata
+parses and round-trips through `str()` but never affects comparison or
+equality, per spec. `tests/test_semver.py` (17 tests) covers all of the
+above plus rejecting a leading zero in a numeric component (per the spec's
+actual grammar, not just "looks close enough"), and — the one I actually
+pulled straight from semver.org — sorting their own worked precedence
+example (shuffled with a fixed seed) back into its documented canonical
+order. All passing. Smoke-tested against that same canonical list before
+writing the formal test for it, plus the CLI's three subcommands
+(`parse`/`compare`/`sort`) against real version strings.
 
 ## 2026-09-04
 
