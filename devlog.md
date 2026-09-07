@@ -2,6 +2,29 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-05
+
+Added `scripts/semver.py` — a Semantic Versioning (semver.org) parser and
+comparator: `Version.parse()`, directly-orderable `Version` objects via
+`functools.total_ordering`, plus `compare()`/`sort_versions()` string
+convenience wrappers. The part worth actually getting right is prerelease
+precedence: identifiers are compared per dot-separated field as either an
+integer or an ASCII string (never as one whole string), so `beta.2 <
+beta.11` comes out correctly instead of following plain string-sort order
+(which would put "11" before "2"); a numeric identifier always ranks
+lower than an alphanumeric one at the same position; a longer prerelease
+with a matching prefix outranks a shorter one; and a real release always
+outranks any prerelease of the same major.minor.patch. Build metadata
+parses and round-trips through `str()` but never affects comparison or
+equality, per spec. `tests/test_semver.py` (17 tests) covers all of the
+above plus rejecting a leading zero in a numeric component (per the spec's
+actual grammar, not just "looks close enough"), and — the one I actually
+pulled straight from semver.org — sorting their own worked precedence
+example (shuffled with a fixed seed) back into its documented canonical
+order. All passing. Smoke-tested against that same canonical list before
+writing the formal test for it, plus the CLI's three subcommands
+(`parse`/`compare`/`sort`) against real version strings.
+
 ## 2026-09-04
 
 Added `scripts/jsonpath.js` — a small subset of JSONPath: dot keys,
