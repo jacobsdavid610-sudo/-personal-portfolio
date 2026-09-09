@@ -2,6 +2,34 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-09
+
+Added `scripts/unionfind.py` — disjoint-set union (union-find) over
+arbitrary hashable elements, with path compression and union by rank, for
+"are these two connected" queries and connected-component grouping without
+re-running BFS/DFS from scratch on every question. Made `find()` raise
+`KeyError` on an element that was never registered, rather than silently
+treating an unrecognized name as its own fresh singleton — `union()` and
+the CLI's `--connected` flag both auto-register their arguments first
+(since union-find is normally built incrementally straight off a stream
+of edges), but a bare connectivity query against a name that's never
+appeared anywhere is much more likely a typo than a deliberate new
+element, so it fails loud instead of quietly returning a confident-looking
+`False`. Path compression is written iteratively (two `while` loops, not
+recursive) specifically because a recursive version hits Python's default
+recursion limit on a long enough chain before union-by-rank gets a chance
+to keep the tree shallow - tested that directly with 999 sequential
+unions forming one long chain, not just a couple of small hand-picked
+cases. `tests/test_unionfind.py` (16 tests) covers connectivity
+(transitive across a chain, unrelated elements staying disconnected),
+`union()`'s True/False return distinguishing a real merge from a no-op,
+`find`/`connected` raising `KeyError` on an unregistered element, `add()`
+being idempotent, component size and grouping, `num_components()`
+decreasing correctly as sets actually merge (and not double-counting when
+re-unioning an already-connected pair), and that 1000-element chain. All
+passing. Smoke-tested the CLI for real against a small edges file, both
+grouped output and `--connected`, plus stdin input.
+
 ## 2026-09-05
 
 Added `scripts/semver.py` — a Semantic Versioning (semver.org) parser and
