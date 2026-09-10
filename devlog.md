@@ -2,33 +2,64 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
-## 2026-09-09
+## 2026-09-08
 
-Added `scripts/unionfind.py` — disjoint-set union (union-find) over
-arbitrary hashable elements, with path compression and union by rank, for
-"are these two connected" queries and connected-component grouping without
-re-running BFS/DFS from scratch on every question. Made `find()` raise
-`KeyError` on an element that was never registered, rather than silently
-treating an unrecognized name as its own fresh singleton — `union()` and
-the CLI's `--connected` flag both auto-register their arguments first
-(since union-find is normally built incrementally straight off a stream
-of edges), but a bare connectivity query against a name that's never
-appeared anywhere is much more likely a typo than a deliberate new
-element, so it fails loud instead of quietly returning a confident-looking
-`False`. Path compression is written iteratively (two `while` loops, not
-recursive) specifically because a recursive version hits Python's default
-recursion limit on a long enough chain before union-by-rank gets a chance
-to keep the tree shallow - tested that directly with 999 sequential
-unions forming one long chain, not just a couple of small hand-picked
-cases. `tests/test_unionfind.py` (16 tests) covers connectivity
-(transitive across a chain, unrelated elements staying disconnected),
-`union()`'s True/False return distinguishing a real merge from a no-op,
-`find`/`connected` raising `KeyError` on an unregistered element, `add()`
-being idempotent, component size and grouping, `num_components()`
-decreasing correctly as sets actually merge (and not double-counting when
-re-unioning an already-connected pair), and that 1000-element chain. All
-passing. Smoke-tested the CLI for real against a small edges file, both
-grouped output and `--connected`, plus stdin input.
+Noticed today that `devlog.md`'s 2026-09-07 entry had vanished from
+`main` — it wasn't a bad merge I did just now, it went missing days ago
+when PR #19 (semver.py) and PR #20 (envtemplate.sh) both tried to insert
+their entry at the same spot in the file and the conflict got resolved by
+dropping one side entirely. Pulled the actual text back out of PR #20's
+commit (`3752eb1`) and restored it at the top, in the right chronological
+spot. Lesson: `devlog.md`'s "new entries go on top" convention means
+every single day's PR touches the exact same lines, so overlapping open
+PRs are a guaranteed conflict — worth merging same-day rather than
+letting two queue up unmerged next time.
+
+Added `scripts/queryparams.js` — parses/stringifies
+`application/x-www-form-urlencoded` query strings into a plain object,
+where a repeated key (`a=1&a=2`) or bracket notation (`a[]=1&a[]=2`)
+collapses into an array, matching what most backend frameworks actually
+do with query strings instead of the flat list of pairs `URLSearchParams`
+deliberately keeps. `+` decodes to a space and re-encodes back to `+` on
+the way out (the `application/x-www-form-urlencoded` convention, not
+`%20`), and both array notations parse to the identical result regardless
+of which one a given API happened to produce. Deliberately scoped to flat
+scalars/arrays only — no `a[b]=c` nested-object notation, which is most of
+the actual complexity in something like the `qs` npm package and not
+usually needed. `tests/test_queryparams.js` (15 tests) covers plain
+parsing, repeated-key and bracket-notation array collapsing (including
+three-plus repeats), a value-less key, percent- and `+`-decoding, a
+leading `?` being stripped, the empty-string case, both stringify array
+formats, `+`/delimiter-character encoding, and a full round-trip of a
+mixed scalar/array object through `parse(stringify(...))`. All passing.
+Smoke-tested both directions via the CLI, including a value containing a
+literal `&` and `=` to confirm those actually get encoded rather than
+corrupting the output.
+
+## 2026-09-07
+
+Added `scripts/envtemplate.sh` — renders a template file's `${VAR}`
+placeholders from the environment, but unlike plain `envsubst`, a
+genuinely **unset** variable is a hard error by default; a variable
+deliberately set to `""` is fine and substitutes as empty. Checked with
+`[ -v "$var" ]` rather than `[ -n "$var" ]`, since those two are different
+questions and conflating them is exactly the footgun this exists to avoid
+(a typo'd placeholder name silently rendering as blank in a real config
+file, instead of failing loudly). Substitution itself is done with bash's
+own `${string//search/replace}` parameter expansion rather than `sed`,
+specifically so a secret value containing `&`, `/`, or a backslash can't
+get misinterpreted as a `sed` backreference or delimiter and corrupt the
+output. `--only VAR,VAR,...` restricts both substitution AND the
+missing-variable check to just the named variables, so a template that
+also references some other tool's placeholder doesn't fail just because
+that one happens to be unset in this invocation's environment.
+`tests/test_envtemplate.sh` (15 tests), against real scratch template
+files and a real environment, no mocking needed: the empty-but-set case,
+the genuinely-unset error case (with the variable name actually appearing
+in the message), `--allow-unset` recovering it, `--only`'s substitution
+and missing-check scoping, a no-placeholders template passing through
+unchanged, a missing template file, and a bare invocation with no
+arguments. All passing.
 
 ## 2026-09-05
 
