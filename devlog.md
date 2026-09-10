@@ -2,6 +2,26 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-10
+
+Added `scripts/bloomfilter.py` — a Bloom filter: fixed-size, no-collision-
+storage probabilistic set that says "definitely not present" or "maybe
+present" with a tunable false-positive rate, sized automatically from an
+expected item count and target rate via the standard optimal-m/k formulas.
+Used Kirsch-Mitzenmacher double hashing (two SHA-256 hashes combined as
+`h1 + i*h2`) to derive all the hash rounds instead of needing a separate
+hash function per round. No deletion support on purpose — clearing a
+shared bit would turn a real membership into a false negative, which
+defeats the whole point.
+
+Added `tests/test_bloomfilter.py` (unittest, stdlib only) — 14 tests
+covering constructor validation, sizing matching the textbook formulas
+exactly, zero false negatives across 300 added items, and an empirical
+false-positive check (2000 disjoint probes against a filter sized for 200
+items at 1%) staying well under a 5x safety margin. Also ran the CLI by
+hand against a small piped item list in both stats mode and `--check`
+mode before committing.
+
 ## 2026-09-05
 
 Added `scripts/semver.py` — a Semantic Versioning (semver.org) parser and
