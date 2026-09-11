@@ -2,6 +2,79 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-11
+
+Added `scripts/lfu_cache.py` — an LFU cache with O(1) get/put, ties broken
+by least-recently-used, using the classic frequency-bucket structure (a
+dict of key->node plus one doubly linked list per hit-count, and a
+tracked minimum frequency) instead of a heap or a scan-for-the-minimum
+frequency dict. Complements the existing `lru_cache.py`: same shape of
+problem, different eviction policy — LFU survives a hot key going quiet
+for a moment during a burst of one-off cold keys, which would flush it
+out of a plain LRU.
+
+Added `tests/test_lfu_cache.py` (unittest, stdlib only) — 15 tests
+covering basic get/put/eviction, frequency tracking (`get` and `put` on
+an existing key both counting as a use), tie-breaking by recency within a
+frequency bucket, a hot key surviving 50 rounds of cold one-off arrivals,
+and a two-cycle evict-then-refill sequence specifically to check the
+`_min_freq` bookkeeping stays correct across repeated eviction rounds,
+not just the first one. All passing. Also ran the module directly and
+hand-checked the eviction trace before writing the formal tests.
+
+Also noticed while syncing today that the last two PR merges (2026-09-09
+and 2026-09-10) silently dropped their devlog.md entries again — same
+failure mode as the 2026-09-07 one. Restored both in a separate commit
+before starting today's work.
+
+## 2026-09-10
+
+Added `scripts/bloomfilter.py` — a Bloom filter: fixed-size, no-collision-
+storage probabilistic set that says "definitely not present" or "maybe
+present" with a tunable false-positive rate, sized automatically from an
+expected item count and target rate via the standard optimal-m/k formulas.
+Used Kirsch-Mitzenmacher double hashing (two SHA-256 hashes combined as
+`h1 + i*h2`) to derive all the hash rounds instead of needing a separate
+hash function per round. No deletion support on purpose — clearing a
+shared bit would turn a real membership into a false negative, which
+defeats the whole point.
+
+Added `tests/test_bloomfilter.py` (unittest, stdlib only) — 14 tests
+covering constructor validation, sizing matching the textbook formulas
+exactly, zero false negatives across 300 added items, and an empirical
+false-positive check (2000 disjoint probes against a filter sized for 200
+items at 1%) staying well under a 5x safety margin. Also ran the CLI by
+hand against a small piped item list in both stats mode and `--check`
+mode before committing.
+
+## 2026-09-09
+
+Added `scripts/unionfind.py` — disjoint-set union (union-find) over
+arbitrary hashable elements, with path compression and union by rank, for
+"are these two connected" queries and connected-component grouping without
+re-running BFS/DFS from scratch on every question. Made `find()` raise
+`KeyError` on an element that was never registered, rather than silently
+treating an unrecognized name as its own fresh singleton — `union()` and
+the CLI's `--connected` flag both auto-register their arguments first
+(since union-find is normally built incrementally straight off a stream
+of edges), but a bare connectivity query against a name that's never
+appeared anywhere is much more likely a typo than a deliberate new
+element, so it fails loud instead of quietly returning a confident-looking
+`False`. Path compression is written iteratively (two `while` loops, not
+recursive) specifically because a recursive version hits Python's default
+recursion limit on a long enough chain before union-by-rank gets a chance
+to keep the tree shallow - tested that directly with 999 sequential
+unions forming one long chain, not just a couple of small hand-picked
+cases. `tests/test_unionfind.py` (16 tests) covers connectivity
+(transitive across a chain, unrelated elements staying disconnected),
+`union()`'s True/False return distinguishing a real merge from a no-op,
+`find`/`connected` raising `KeyError` on an unregistered element, `add()`
+being idempotent, component size and grouping, `num_components()`
+decreasing correctly as sets actually merge (and not double-counting when
+re-unioning an already-connected pair), and that 1000-element chain. All
+passing. Smoke-tested the CLI for real against a small edges file, both
+grouped output and `--connected`, plus stdin input.
+
 ## 2026-09-08
 
 Noticed today that `devlog.md`'s 2026-09-07 entry had vanished from
