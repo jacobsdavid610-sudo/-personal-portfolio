@@ -2,6 +2,31 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-11
+
+Added `scripts/lfu_cache.py` — an LFU cache with O(1) get/put, ties broken
+by least-recently-used, using the classic frequency-bucket structure (a
+dict of key->node plus one doubly linked list per hit-count, and a
+tracked minimum frequency) instead of a heap or a scan-for-the-minimum
+frequency dict. Complements the existing `lru_cache.py`: same shape of
+problem, different eviction policy — LFU survives a hot key going quiet
+for a moment during a burst of one-off cold keys, which would flush it
+out of a plain LRU.
+
+Added `tests/test_lfu_cache.py` (unittest, stdlib only) — 15 tests
+covering basic get/put/eviction, frequency tracking (`get` and `put` on
+an existing key both counting as a use), tie-breaking by recency within a
+frequency bucket, a hot key surviving 50 rounds of cold one-off arrivals,
+and a two-cycle evict-then-refill sequence specifically to check the
+`_min_freq` bookkeeping stays correct across repeated eviction rounds,
+not just the first one. All passing. Also ran the module directly and
+hand-checked the eviction trace before writing the formal tests.
+
+Also noticed while syncing today that the last two PR merges (2026-09-09
+and 2026-09-10) silently dropped their devlog.md entries again — same
+failure mode as the 2026-09-07 one. Restored both in a separate commit
+before starting today's work.
+
 ## 2026-09-10
 
 Added `scripts/bloomfilter.py` — a Bloom filter: fixed-size, no-collision-
