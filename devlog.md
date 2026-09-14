@@ -2,6 +2,28 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-14
+
+Added `scripts/consistenthash.py` — a consistent hashing ring: keys and
+nodes both hashed onto the same ring, each key owned by whichever node
+sits next clockwise from it. Nodes get 100 virtual replicas each by
+default so a handful of real nodes still spread evenly instead of
+clumping. The actual point of the exercise versus `hash(key) %
+num_nodes`: adding or removing a node only reshuffles the keys that were
+actually near it, not the whole keyspace.
+
+Added `tests/test_consistenthash.py` (unittest, stdlib only) — 13 tests
+covering constructor validation, idempotent `add_node`, `KeyError` on
+removing an unknown node, `LookupError` on an empty ring, deterministic
+key->node mapping regardless of node insertion order, and the actual
+rebalancing guarantee: adding a 4th node to a 3-node ring remaps roughly
+a quarter of 2000 test keys (not nearly all of them, which is what
+mod-based hashing would do), and removing that node moves back exactly
+the keys that were on it, leaving everything else untouched. All passing
+— checked the real remap fraction (~24.5%) by hand before picking the
+test's bounds, and ran the CLI against a small piped node list in both
+stats and `--keys` mode.
+
 ## 2026-09-11
 
 Added `scripts/lfu_cache.py` — an LFU cache with O(1) get/put, ties broken
