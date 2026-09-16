@@ -2,6 +2,30 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-16
+
+Added `scripts/skiplist.py` — a skip list: an ordered map built from
+layered linked lists, where each node is randomly promoted to higher
+levels on insert (coin flips with probability `p`, capped at
+`max_level`). Search, insert, and delete all walk one pass from the top
+level down, which gives O(log n) expected time for all three plus
+ordered iteration and range queries, without any tree-rotation logic to
+get wrong. Pure stdlib (`random`).
+
+Added `tests/test_skiplist.py` (unittest, stdlib only) — 21 tests
+covering constructor validation (`p` outside `(0, 1)`, non-positive
+`max_level`), `KeyError` on searching/deleting a missing key, re-inserting
+a key overwriting its value without growing `len()`, `__contains__` /
+`__getitem__` / `__setitem__` / `__delitem__` matching the underlying
+methods, deleting every key returning the list to empty, ascending
+iteration regardless of insert order, a 1000-key shuffled
+insert/search/iterate pass, inclusive range queries plus `range`
+rejecting `start > end`, and two skip lists built from the same seed and
+insert order landing on identical top levels and key order. All passing.
+Also ran the CLI by hand piping small `key=value` input through stats,
+`--search`, `--range`, missing-key, and empty-input modes before
+committing.
+
 ## 2026-09-14
 
 Added `scripts/consistenthash.py` — a consistent hashing ring: keys and
