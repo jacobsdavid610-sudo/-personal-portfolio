@@ -2,6 +2,36 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-17
+
+Added `scripts/deepequal.js` — deep structural equality for JS values:
+objects (order-independent on keys), arrays (order-sensitive), `Date`,
+`RegExp`, `Map`, `Set`, and values with circular references. Primitives
+are compared with `Object.is` rather than `===`, so `NaN` equals `NaN`
+but `+0` and `-0` don't — the same `SameValue` rule Node's own
+`assert.deepStrictEqual` uses. Cycles are handled with a `seen` map of
+in-progress `(a, b)` pairs: hitting the same pair again further down the
+recursion is assumed equal instead of recursing forever, which also
+correctly resolves self-references and objects that reference each
+other. `Map`/`Set` comparison matches entries/values by deep equality
+with consumption from a working pool, since `Map.get`/`Set.has` only do
+reference equality and would miss two differently-referenced-but-equal
+object keys/elements. No dependencies.
+
+Added `tests/test_deepequal.js` (Node's built-in `node:test`, no npm
+install) — 20 tests covering primitive equality and cross-type
+inequality, the `NaN`/`+0`/`-0` edge cases, object key-order
+independence, a missing key vs. an explicit `undefined`, deep nested
+comparison catching a change three levels down, array order/length
+sensitivity, an array never matching a same-shaped plain object,
+`Date`/`RegExp` value comparison, `Set`/`Map` equality regardless of
+insertion order with object elements matched structurally, and three
+circular-reference shapes (self-reference, mutual cross-reference,
+nested-in-an-array) all resolving without throwing. All passing. Also
+ran the CLI by hand against small file and piped-stdin JSON pairs in
+both the equal and not-equal cases, plus a missing-file error, before
+committing.
+
 ## 2026-09-14
 
 Added `scripts/consistenthash.py` — a consistent hashing ring: keys and
