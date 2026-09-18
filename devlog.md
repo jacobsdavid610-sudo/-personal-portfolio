@@ -31,6 +31,67 @@ nested-in-an-array) all resolving without throwing. All passing. Also
 ran the CLI by hand against small file and piped-stdin JSON pairs in
 both the equal and not-equal cases, plus a missing-file error, before
 committing.
+## 2026-09-16
+
+Added `scripts/skiplist.py` — a skip list: an ordered map built from
+layered linked lists, where each node is randomly promoted to higher
+levels on insert (coin flips with probability `p`, capped at
+`max_level`). Search, insert, and delete all walk one pass from the top
+level down, which gives O(log n) expected time for all three plus
+ordered iteration and range queries, without any tree-rotation logic to
+get wrong. Pure stdlib (`random`).
+
+Added `tests/test_skiplist.py` (unittest, stdlib only) — 21 tests
+covering constructor validation (`p` outside `(0, 1)`, non-positive
+`max_level`), `KeyError` on searching/deleting a missing key, re-inserting
+a key overwriting its value without growing `len()`, `__contains__` /
+`__getitem__` / `__setitem__` / `__delitem__` matching the underlying
+methods, deleting every key returning the list to empty, ascending
+iteration regardless of insert order, a 1000-key shuffled
+insert/search/iterate pass, inclusive range queries plus `range`
+rejecting `start > end`, and two skip lists built from the same seed and
+insert order landing on identical top levels and key order. All passing.
+Also ran the CLI by hand piping small `key=value` input through stats,
+`--search`, `--range`, missing-key, and empty-input modes before
+committing.
+## 2026-09-18
+
+Added `scripts/sshconfig-lint.sh` — lints an OpenSSH client config file
+for footguns `ssh` itself won't error on, it'll just quietly do the
+wrong thing: a `Host *` block placed before a specific host (ssh_config
+resolves options first-match-wins across matching blocks, top to
+bottom, not "most specific wins," so the wildcard block already locks in
+anything it set before a later specific block gets a say), the exact
+same `Host` pattern declared twice (the second declaration is dead for
+any option the first one already set), and a referenced `IdentityFile`
+that doesn't exist on disk once `~` and relative-to-the-config's-own-
+directory resolution are applied. Deliberately only flags a bare `Host
+*` as the wildcard case, not a regex guess at every glob pattern that
+happens to be broad — `ssh_config` supports much richer patterns
+(`*.example.com`, `!bastion *`) and guessing at those would produce
+false positives. No dependencies beyond bash/coreutils.
+
+Originally also had it check `IdentityFile` permissions (flagging
+group/world-readable private keys), but discovered while smoke-testing
+that `chmod` doesn't reliably restrict permissions on this Windows/Git
+Bash setup — a file I'd just `chmod 600`'d still reported back as `644`
+from `stat`. Dropped that check rather than ship something I couldn't
+actually verify works, and added a missing-IdentityFile-file check
+instead, which is fully portable and deterministic.
+
+Added `tests/test_sshconfig-lint.sh` (bash, assertion-based against real
+scratch config files, matching the existing `gitstats.sh`/`checksum-
+verify.sh` test style) — 11 assertions covering a clean config exiting 0
+with zero findings, a messy config catching SHADOWED + DUPLICATE +
+MISSING together with correct line numbers and exiting 1, a relative
+`IdentityFile` path resolving against the config file's own directory
+rather than the working directory (proven by pointing `$HOME` somewhere
+the file couldn't be found, so the test would actually fail if
+resolution silently fell back to `$HOME`), comments/blank lines not
+being parsed as directives, `Key=Value` form matching `Key Value` form,
+and a missing config file or extra argument being rejected. All passing.
+Also ran the CLI by hand against scratch configs covering all three
+finding types plus a clean one before committing.
 
 ## 2026-09-14
 
