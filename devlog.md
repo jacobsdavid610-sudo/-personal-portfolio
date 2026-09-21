@@ -2,6 +2,53 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-21
+
+Added `scripts/intervals.py` — interval set arithmetic over half-open
+`[start, end)` ranges: add, remove, union, intersection, difference,
+gaps within a bound, and total covered length, with the internal list
+kept sorted and disjoint at all times. Pure stdlib, just `bisect`.
+
+Picked half-open deliberately rather than out of habit. With closed
+intervals, whether `[0, 5]` and `[6, 10]` are adjacent or separated
+depends on the step size of whatever type you're holding — integers say
+adjacent, floats say there's a gap — so merging needs an epsilon, and
+any epsilon you pick is wrong for somebody. Half-open sidesteps it
+entirely: `[0, 5)` and `[5, 10)` share no point yet leave nothing
+between them, so they merge, and the identical code is correct for
+integer timestamps and floats. Confirmed that with a float case in the
+tests rather than just asserting it to myself.
+
+The part that actually needed thinking was that `add` and `remove` want
+opposite comparisons on the same boundary. When adding, an existing
+interval ending exactly at the new `start` should be merged into
+(`>=`), because touching means no gap. When removing, an interval
+ending exactly at the removed `start` should be left completely alone
+(`>`), because touching means no shared point. Same boundary, same two
+numbers, opposite answers — easy to write both as `>=`, and the result
+would look right on every test that isn't specifically about a shared
+edge. Pinned each direction with its own test so it can't quietly
+regress.
+
+One small nicety while indexing: `bisect_left(intervals, (start,))`
+finds the first interval starting at or after `start` directly on the
+tuple list, because a 1-tuple compares as a prefix of `(start, end)`.
+That avoids keeping a parallel array of start values purely to have
+something to bisect on — which would have been a second structure to
+keep in sync with the first, i.e. somewhere for a bug to live.
+
+Added `tests/test_intervals.py` (unittest, stdlib only) — 34 tests
+across construction, add, remove, contains, set ops, gaps, total and
+the input parser. Beyond the boundary cases above: one range swallowing
+three others, removal splitting an interval in two, set ops leaving
+both operands unmodified (they build from a copy, but that's the kind
+of thing that's true until someone refactors it), gaps clipped to the
+requested bounds, total counting overlapping cover once, and the parser
+keeping integers as integers so CLI output stays usable as input to the
+next thing. All passing. Also ran the CLI by hand over a scratch file
+and piped stdin in all four modes and checked the exit codes for
+malformed and empty input before committing.
+
 ## 2026-09-17
 
 Added `scripts/deepequal.js` — deep structural equality for JS values:
