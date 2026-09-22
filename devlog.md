@@ -2,6 +2,48 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-22
+
+Added `scripts/ringbuffer.py` — fixed-capacity circular buffer: push is
+O(1) forever, and once full it silently overwrites the oldest item
+instead of growing. Pure stdlib.
+
+The thing it replaces is the "keep the last N" pattern people reach for
+by default: a plain list with `append` then `list[-N:]` (or `del
+list[0]`) once you're over capacity. That works, but it's O(n) per trim
+at capacity, because slicing or deleting off the front re-copies
+whatever's left. Fine at N=10, but for something like a rolling window
+of request latencies under real throughput, the "keep the last N"
+bookkeeping ends up costing more than whatever's actually being
+measured. Keeping one fixed-size list and moving a `start` pointer
+instead of moving the data makes push O(1) whether the buffer is half
+full or has wrapped ten thousand times - proved that last part
+specifically with a test that wraps a capacity-3 buffer across 10
+pushes, not just once, since a modulo bug that only shows up on the
+*second* wrap is exactly the kind of thing a single-wrap test would
+miss.
+
+`clear()` was the one part worth being careful about. The obvious
+implementation is just resetting `count` and `start` to zero - cheap,
+and by every visible behavior (`len()`, iteration, `is_full`) it looks
+identical to actually clearing the buffer. But the old items are still
+sitting in the underlying list, still reachable through it, so nothing
+they're holding onto ever gets garbage collected. `clear()` reassigns
+the storage to a fresh list of `None`s instead, and the test checks the
+internal `_buf` directly rather than just `len(r) == 0`, so a
+regression back to the cheap version would actually get caught.
+
+Added `tests/test_ringbuffer.py` (unittest, stdlib only) — 16 tests
+across construction, push (including the multi-wrap case above and a
+capacity-1 buffer, which only ever holds the single latest push),
+indexing (positive, negative, and one step past both ends of the valid
+range), and clear (including the reference-dropping behavior). All
+passing. Also ran the CLI by hand - it doubles as a `tail -n`
+reimplementation on top of the buffer - over a scratch file, piped
+stdin, both default and `--stats` output, and piped `seq 1 100000`
+through a capacity-3 buffer to eyeball that memory use doesn't grow
+with input size, before committing.
+
 ## 2026-09-21
 
 Added `scripts/intervals.py` — interval set arithmetic over half-open
