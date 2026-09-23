@@ -2,6 +2,54 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-23
+
+Added `scripts/memoize.js` — function memoization with optional TTL
+expiry, a size cap, and a custom key resolver. Works for sync and async
+functions alike, no dependencies.
+
+The part worth writing down is what "memoize an async function" should
+even mean for concurrent calls. The obvious version caches the
+*resolved* result once the promise settles - which does nothing for
+three calls that all land while the first one is still in flight; each
+one sees an empty cache and fires its own call, so you get the classic
+thundering-herd problem right where memoization was supposed to
+prevent it. The fix is caching the promise itself, immediately, before
+it's settled - so a concurrent call with the same key just gets handed
+that same promise and awaits it like everyone else. No separate
+"in-flight" flag or pending-set needed; the cache entry being a pending
+promise *is* the in-flight state.
+
+That raised the next question on its own: what happens if that shared
+promise rejects? Caching it like a normal success means every caller,
+including ones who show up long after the failure, gets handed the
+identical stale error for the full `ttl` - even though whatever caused
+it might already be fixed. So a rejection evicts its own cache entry
+immediately instead of waiting out the ttl. But the eviction handler
+can't just delete `cache.get(key)` unconditionally, because by the time
+it runs, a different, newer call for the same key might already have
+replaced that entry with its own fresh attempt - blindly deleting would
+take out someone else's in-progress work, not the failed one. It has to
+check the cached value is still *this exact promise* before deleting.
+Wrote a test specifically for that race rather than just the simple
+"failures don't stick around" case, since that's the version of this
+bug that would actually be worth catching.
+
+Went with FIFO eviction for the `maxSize` cap rather than reaching for
+`lru_cache.py`'s machinery, which already exists in this repo. A `Map`
+gives insertion-order eviction for free; true LRU needs to track access
+order too, which is real complexity this script doesn't need - the goal
+here is just capping unbounded growth for a large key space, not
+optimizing which entry survives under memory pressure.
+
+Added `tests/test_memoize.js` (`node --test`, no npm install) — 12
+tests across sync caching, the default resolver's key behavior, ttl
+expiry via an injectable clock (so nothing here actually sleeps),
+concurrent async dedupe, the rejection-eviction race described above,
+FIFO capping, and `clear()`. All passing. Also ran it by hand with a
+real `setTimeout`-based ttl and a real concurrent-promise case before
+committing, not just the fake-clock version in the tests.
+
 ## 2026-09-22
 
 Added `scripts/ringbuffer.py` — fixed-capacity circular buffer: push is
