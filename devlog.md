@@ -2,6 +2,54 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-24
+
+Added `scripts/secretscan.sh` — greps a directory tree for patterns that
+look like leaked credentials (AWS access key IDs, PEM private key
+blocks, GitHub and Slack tokens, generic api_key/secret/token/password
+assignments) and reports `file:line:rule`, with the matched secret
+redacted in the output rather than printed in full. `.git/` and
+`node_modules/` are always excluded, binary files are skipped via
+`grep -I`, and `--ignore GLOB` handles anything else. Exit 1 on any
+finding, meant to sit in a pre-commit hook or CI gate. Wraps `grep`, no
+other dependencies.
+
+Redaction shows a fixed `…redacted…` placeholder rather than a
+length-preserving mask like `****************`, specifically so the
+secret's length isn't leaked either - a scanner that reprints what it
+found, even partially, into a CI log everyone can read has arguably
+just created a second leak of the same secret, often a more durable one
+than the original commit.
+
+Found a real bug while testing, not a hypothetical one: the private-key
+rule's pattern is `-----BEGIN [A-Z ]*PRIVATE KEY-----`, and the first
+version called `grep -InE "$pattern" -- "$file"` - `--` after the
+pattern, which is the placement that protects a filename starting with
+`-`. But grep only stops treating *all* later arguments as options once
+it's seen `--`, so a pattern that itself starts with `-----` got read
+as a string of bogus short options instead of a pattern at all. It
+errored out on every single call, for every rule, not just the private-
+key one - and the `2>/dev/null` on that grep swallowed the error, so
+the whole script just quietly reported zero findings everywhere,
+looking exactly like a clean scan instead of a broken one. Would have
+shipped a scanner that silently scans nothing. Only caught because the
+private-key fixture got run for real before committing rather than just
+trusting the AWS-key case (which has no leading `-` and worked by
+accident the whole time). Fix was moving `--` before the pattern on
+both grep calls, and the private-key fixture stayed in the test suite
+specifically so this exact failure mode can't come back unnoticed.
+
+Added `tests/test_secretscan.sh` (bash, assertion-based against real
+fixture files, matching the `checksum-verify.sh`/`sshconfig-lint.sh`
+test style) — 22 assertions: each rule firing on its own fixture, full
+secrets never appearing anywhere in the tool's own output, `.git/` and
+`node_modules/` genuinely excluded rather than just not crashing, a key
+embedded in a binary file never surfacing, correct exit codes for
+findings vs. a clean directory, an exact finding count (6, not 5 - one
+fixture line legitimately matches two different rules, which is
+intentional, not deduplicated), `--ignore` scoping correctly, and both
+a bare invocation and a nonexistent path being rejected. All passing.
+
 ## 2026-09-23
 
 Added `scripts/memoize.js` — function memoization with optional TTL
