@@ -2,6 +2,55 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-25
+
+Added `scripts/reservoir.py` — reservoir sampling (Algorithm R): pick
+`k` items uniformly at random from a stream of unknown or unbounded
+length, in one pass, holding only `k` items in memory the whole time.
+Pure stdlib.
+
+The thing that makes this algorithm worth actually sitting with instead
+of just copying a snippet: the first `k` items go straight into the
+reservoir with nowhere else to go, and every item after that replaces a
+uniformly-random existing slot with probability `k/i` where `i` is how
+many items have been seen so far (`randint(0, i)` inclusive, landing in
+`[0, k)` triggers the replacement). It's not obvious by inspection that
+this converges to every item having exactly `k/n` probability by the
+end regardless of `n` - the proof is an induction over "probability
+this item survives all the way to the end," and getting the `randint`
+bound off by one (`i` vs `i - 1`) produces a sampler that still runs,
+still looks reasonable, and is quietly biased. That's a bug class a
+glance at the output can't catch.
+
+So I tested it two different ways rather than trusting either alone. A
+`FakeRng` test double scripts an exact sequence of `randint` return
+values against a small hand-worked example, so one test proves the
+mechanics are literally correct step by step - this item replaces that
+slot, this other one gets discarded - not just "looks plausible."
+Separately, a 20,000-trial run against a fixed seed checks the actual
+selection frequency lands close to uniform, with a deliberately loose
+tolerance so it only fails on a real bias rather than sampling noise -
+same style of bound `consistenthash.py`'s remap-fraction test already
+uses in this repo. Neither test would have caught everything alone: the
+mechanics test can't see a subtly-wrong-but-plausible formula, and the
+statistical test wouldn't have told me *why* it was wrong if it failed.
+
+Also reused the injectable-source pattern already established in this
+repo - `ratelimiter.py`'s clock, `memoize.js`'s clock - for randomness
+instead of time: `rng` defaults to the `random` module but accepts
+anything with a `randint(a, b)` method, so a seeded `random.Random`
+makes both the statistical test and CLI output reproducible without the
+tests depending on real randomness.
+
+Added `tests/test_reservoir.py` (unittest, stdlib only) — 12 tests
+across edge cases (negative k, k=0, stream shorter than or equal to k,
+empty stream), the FakeRng mechanics tests above, same-seed
+reproducibility vs. different-seed divergence, the uniformity check,
+and k=1 eventually covering every item given enough draws. All passing.
+Also ran the CLI by hand piping a million-line stream through `--k 5`
+with a fixed seed twice to confirm reproducibility end to end, and
+checked the exit code for a negative `--k`, before committing.
+
 ## 2026-09-24
 
 Added `scripts/secretscan.sh` — greps a directory tree for patterns that
