@@ -4,9 +4,13 @@
 // dependencies.
 
 /**
- * Base64url-decodes a JWT segment into a UTF-8 string.
+ * Base64url-decodes a JWT segment into a raw Buffer. Shared by
+ * base64UrlDecode below (text segments) and by jwtverify.js (the
+ * signature segment, which is binary and would be corrupted by a
+ * round-trip through UTF-8 text decoding) - one padding implementation
+ * rather than two copies that could quietly drift apart.
  */
-function base64UrlDecode(segment) {
+function base64UrlToBuffer(segment) {
   let base64 = segment.replace(/-/g, "+").replace(/_/g, "/");
   const pad = base64.length % 4;
   if (pad === 2) base64 += "==";
@@ -14,7 +18,14 @@ function base64UrlDecode(segment) {
   else if (pad !== 0) {
     throw new Error("Invalid base64url segment length");
   }
-  return Buffer.from(base64, "base64").toString("utf8");
+  return Buffer.from(base64, "base64");
+}
+
+/**
+ * Base64url-decodes a JWT segment into a UTF-8 string.
+ */
+function base64UrlDecode(segment) {
+  return base64UrlToBuffer(segment).toString("utf8");
 }
 
 /**
@@ -73,7 +84,7 @@ function describeClaims(payload) {
   return lines;
 }
 
-module.exports = { decode, base64UrlDecode, describeClaims };
+module.exports = { decode, base64UrlDecode, base64UrlToBuffer, describeClaims };
 
 if (require.main === module) {
   const token = process.argv[2];
