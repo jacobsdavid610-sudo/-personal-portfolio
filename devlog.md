@@ -2,6 +2,64 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-09-28
+
+Added `scripts/jwtverify.js` — actually verifies a JWT's HMAC signature
+(HS256/HS384/HS512) plus its exp/nbf claims, closing the gap
+`jwtdecode.js` has said out loud in its own header comment since the
+day it was written: "does NOT verify the signature - this is a
+debugging tool, not an auth check." No dependencies beyond
+`node:crypto`.
+
+`options.algorithms` has no default and is required - that's the one
+decision in this script that actually matters for security. The
+canonical JWT footgun is a verifier that trusts whatever `alg` the
+token's own header claims: an attacker hands you `alg: "none"` (or an
+algorithm you never meant to accept) and a verifier that just does
+"whatever it says, do that" happily complies. Making the caller state
+their allowed algorithms up front means the token's own `alg` field can
+only ever fail an allowlist check, never redirect what verification
+actually runs. Wrote the `alg: none` case as its own test rather than
+trusting the allowlist logic in the abstract.
+
+Comparing the computed signature against the token's own signature
+bytes with `crypto.timingSafeEqual` instead of `===` or string
+comparison was the other piece worth being deliberate about - a
+short-circuiting comparison leaks how many leading bytes of a guessed
+signature were already correct, which is the whole class of bug
+constant-time comparison exists to close. The one thing that comparison
+gets wrong on its own is that it throws instead of returning false on
+mismatched lengths, so the length gets checked first - fine to do
+because the expected length only depends on the algorithm, never on
+anything attacker-supplied, so it isn't leaking anything by checking it
+early.
+
+The signature segment is binary, not UTF-8 text, so it can't go through
+`jwtdecode.js`'s existing `base64UrlDecode` - that ends in
+`.toString("utf8")`, which would silently corrupt arbitrary signature
+bytes on the round trip. Rather than re-implement the base64url padding
+fixup a second time, pulled that shared step out of `jwtdecode.js` as
+`base64UrlToBuffer`, with `base64UrlDecode` now just wrapping it in one
+line. Padding logic is exactly the kind of thing not worth having two
+copies of that could quietly drift apart. Re-ran `jwtdecode.js`'s
+existing test suite unchanged afterward to confirm the refactor didn't
+touch any observable behavior before writing a single line of this
+script's own tests.
+
+Added `tests/test_jwtverify.js` (`node --test`) — 16 tests covering a
+correctly-signed token verifying, wrong secret and tampered-payload
+rejection, the `alg: none` case, an algorithm outside the caller's
+allowlist being rejected even when it's a real HMAC algorithm, HS384/
+HS512 both working when explicitly allowed, a non-HMAC algorithm in the
+caller's *own* allowlist failing cleanly instead of crashing, missing
+`options.algorithms` throwing, exp/nbf in both directions via the
+injected clock, `leewaySec` forgiving a small overshoot, a token with
+no exp/nbf at all always being valid, and malformed input being
+rejected without throwing versus a non-3-segment token throwing on
+purpose. All 16 passing, plus the existing 10 in `test_jwtdecode.js`
+still green. Also ran the CLI by hand against a token signed with a
+real HMAC secret before committing.
+
 ## 2026-09-25
 
 Added `scripts/reservoir.py` — reservoir sampling (Algorithm R): pick
