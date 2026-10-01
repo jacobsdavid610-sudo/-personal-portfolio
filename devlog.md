@@ -2,6 +2,43 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-10-01
+
+Added `scripts/uuid.js` — UUID generation and parsing per RFC 9562:
+random v4 and time-ordered v7. Node already has `crypto.randomUUID()`
+for v4 but nothing for v7, and v7 is the one I'd actually want as a
+database primary key: the first 48 bits are a Unix ms timestamp, so ids
+sort by creation time and inserts don't scatter across random pages of
+a B-tree index the way v4 does. No dependencies beyond `node:crypto`.
+
+The part that took actual thought was ordering *within* a millisecond.
+Two v7s from the same ms with fully random tails sort randomly relative
+to each other, which quietly breaks the whole point. Used the 12-bit
+`rand_a` field as a counter instead (the spec's "method 1"), seeded
+from random bits but capped to the lower half of the range so there's
+always at least 2048 increments of headroom. When it does overflow, the
+timestamp gets bumped forward 1ms rather than wrapping the counter -
+same for a clock that jumps backwards (NTP correction): the generator
+just keeps going from the last timestamp it issued. The embedded time
+can drift a little ahead of real time under load; that's the right
+trade versus ever emitting an id smaller than the last one.
+
+Also hit the classic JS 32-bit bitwise trap: current ms timestamps are
+around 2^40, so shifting the high bytes out with `>>>` gives garbage.
+Split it with `Math.floor(ts / 2 ** 16)` first and wrote a test with a
+timestamp above 2^47 specifically to catch that if anyone "simplifies"
+it later.
+
+Added `tests/test_uuid.js` (`node --test`) — 13 tests: v4
+shape/version/variant over 200 samples and agreement with
+`crypto.randomUUID()`, version/variant bits overriding all-`0xff`
+random input, v7 timestamp round-trip, >2^32 timestamps, sort order
+across ms, 1000 strictly-increasing ids in a single ms, counter
+overflow, backwards clock, out-of-range clocks throwing, variant
+detection on parse, and malformed strings being rejected. All passing.
+Also ran the CLI by hand (`v7 -n 3`, `parse` on a fresh v7, and the
+exit codes on bad input) before committing.
+
 ## 2026-09-28
 
 Added `scripts/jwtverify.js` — actually verifies a JWT's HMAC signature
