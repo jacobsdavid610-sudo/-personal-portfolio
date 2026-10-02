@@ -2,6 +2,43 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-10-02
+
+Added `scripts/humanize.py` — byte counts and durations to and from
+human-readable strings (`1536 <-> "1.5 KiB"`, `9005 <-> "2h 30m 5s"`).
+`dirsize.sh` already has its own little `human()` function and every
+time I write something that takes a size limit or timeout I end up
+wanting `"500MB"` or `"1h30m"` in the config instead of a raw number,
+so this is the one place that does it properly in both directions.
+Pure stdlib.
+
+The bug I'd have shipped without thinking about it: 1048575 bytes is
+1023.999 KiB, which rounds to "1024.0 KiB" - technically right, looks
+broken. Rounding now happens first and if the rounded value has hit
+the base it gets promoted to the next unit, so it's "1.0 MiB", with a
+test pinning it in both binary and SI mode.
+
+Went with `Decimal` everywhere instead of float. `0.1 * 1000**3` in
+float is `100000000.00000001`, and I wanted `parse_bytes` to reject
+things that really aren't whole bytes (`"1.5 B"`) - with float that
+check would trip on perfectly valid input. Bare `K`/`M`/`G` are treated
+as 1024 because that's what `du -h` and `ls -h` print, so their output
+can go straight back in; `kB`/`MB` stay SI and `KiB`/`MiB` stay binary.
+
+On the duration side, `max_units` truncates rather than rounds -
+`7199s` is "1h 59m", not "2h 0m", since overstating is the wrong
+direction for anything like a time-remaining display. And
+`parse_duration` walks the string token by token and fails on the
+first thing it can't eat, so `"1h banana"` or `"1 hour"` raise instead
+of silently becoming 3600. Had to put `ms` ahead of `m` in the regex so
+`"5ms"` doesn't get read as five minutes plus a stray `s`.
+
+Added `tests/test_humanize.py` (unittest, stdlib only) — 23 tests
+covering both directions for both types, the rounding carry, exact
+decimal parsing, round-trips through format -> parse, and a pile of
+junk input on each parser. All passing. Ran each CLI subcommand by
+hand too, including the exit code on unparseable input.
+
 ## 2026-10-01
 
 Added `scripts/uuid.js` — UUID generation and parsing per RFC 9562:
