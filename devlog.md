@@ -2,6 +2,81 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-10-07
+
+Added `scripts/globmatch.js` — matches path strings against shell-style
+globs (`*`, `?`, `[a-z]`, `[!x]`, `{a,b}`, `**`) by compiling each
+pattern to one anchored RegExp. Shell globbing only works on files that
+exist on disk; this works on any list of paths, so it can sit after
+`git ls-files` or `find` in a pipe. Prints matches, `-v` inverts, and it
+exits 1 when nothing matched, same as `grep`.
+
+My first idea was to turn `{a,b}` straight into a regex `(?:a|b)`, but
+that gets messy once the dotfile rule is in: whether `*` may match a
+leading `.` depends on whether it's at the start of a path segment, and
+inside `{.a,b}*` that's awkward to know while walking the pattern. So
+braces get expanded up front into plain patterns, each one is compiled,
+and the results are joined with `|`. Simpler compiler, but `{a,b}`
+repeated 13 times is 8192 patterns, so expansion is capped at 4096 and
+throws past that instead of hanging.
+
+`**` only means "any number of directories" when it's a whole segment
+(`a/**/b`, trailing `src/**`); `a**b` is just `a*b`. It also refuses to
+walk into `.git/` or `.cache/` unless `--dot` is passed, which is the
+whole point of having the dot rule - otherwise `**/*.js` pulls in every
+hook and tool cache. Bracket classes never match `/` either way.
+
+Added `tests/test_globmatch.js` (`node --test`, no npm install) - 15
+tests covering segment boundaries, `**` placement, dotfiles, classes
+(including `]` as the first member and `[z-a]` throwing a readable
+error), escapes, unclosed `[`/`{` staying literal, nested braces, the
+expansion cap, `./` prefixes, and basename mode. All passing. Also ran
+it against this repo's `git ls-files` for the examples in the doc.
+
+## 2026-10-06
+
+Added `scripts/runlock.sh` — runs a command while holding a lock so
+overlapping runs can't pile up (cron job every 5 minutes, one run
+takes 7). The normal answer is `flock -n`, but `which flock` comes up
+empty in Git Bash and it's not on macOS either, so this uses a lock
+*directory* instead: `mkdir` is atomic, exactly one process wins, and
+the winner writes its pid inside.
+
+The pid is there for stale-lock recovery - if the holder got
+`kill -9`'d, `kill -0 <pid>` fails and the lock can be reclaimed. The
+fiddly part is two processes deciding it's stale at the same moment
+and both `rm -rf`-ing the path, possibly after one of them already
+recreated it. Went with `mv`-ing the stale dir to a unique name first
+(atomic, only one `mv` succeeds), deleting that, then a single `mkdir`
+retry, so only one recoverer can come out holding the lock. There's
+also a tiny window between someone's `mkdir` and their pid write; a
+pid-less lock is treated as held rather than stale, or two processes
+would get in right there.
+
+First instinct was to run the command with `&` + `wait` so signals
+could be forwarded, but a backgrounded command in a non-interactive
+shell gets `/dev/null` as stdin, which would quietly break piping into
+it. Running it in the foreground and turning INT/TERM into a plain
+`exit` works out better anyway: bash holds the trap until the command
+finishes, so the lock stays held exactly as long as the command is
+still running, then the EXIT trap releases it. Wrote down the limits
+I'm deliberately not solving (pid reuse, `kill -9` of runlock itself,
+NFS) in the doc rather than pretending they don't exist.
+
+Exit code `75` when the lock is held - `EX_TEMPFAIL` from
+`sysexits.h`, so it can't be confused with whatever the wrapped command
+returns for its own failures.
+
+Added `tests/test_runlock.sh` (plain bash assertions, same style as
+`test_retry.sh`) — 23 assertions covering pass-through of args/output/
+exit codes, release on success and failure, stdin reaching the command,
+a concurrent run being refused, `--wait` both succeeding and timing
+out, dead-pid recovery, the pid-less case, not deleting someone else's
+lock, SIGTERM still releasing, the default lock path, and usage
+errors. All passing; it's slow (~25s) on Git Bash because of the
+sleeps. Also ran two overlapping invocations by hand to check the
+messages and exit codes.
+
 ## 2026-10-02
 
 Added `scripts/humanize.py` — byte counts and durations to and from
