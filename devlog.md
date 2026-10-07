@@ -2,6 +2,37 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-10-07
+
+Added `scripts/globmatch.js` — matches path strings against shell-style
+globs (`*`, `?`, `[a-z]`, `[!x]`, `{a,b}`, `**`) by compiling each
+pattern to one anchored RegExp. Shell globbing only works on files that
+exist on disk; this works on any list of paths, so it can sit after
+`git ls-files` or `find` in a pipe. Prints matches, `-v` inverts, and it
+exits 1 when nothing matched, same as `grep`.
+
+My first idea was to turn `{a,b}` straight into a regex `(?:a|b)`, but
+that gets messy once the dotfile rule is in: whether `*` may match a
+leading `.` depends on whether it's at the start of a path segment, and
+inside `{.a,b}*` that's awkward to know while walking the pattern. So
+braces get expanded up front into plain patterns, each one is compiled,
+and the results are joined with `|`. Simpler compiler, but `{a,b}`
+repeated 13 times is 8192 patterns, so expansion is capped at 4096 and
+throws past that instead of hanging.
+
+`**` only means "any number of directories" when it's a whole segment
+(`a/**/b`, trailing `src/**`); `a**b` is just `a*b`. It also refuses to
+walk into `.git/` or `.cache/` unless `--dot` is passed, which is the
+whole point of having the dot rule - otherwise `**/*.js` pulls in every
+hook and tool cache. Bracket classes never match `/` either way.
+
+Added `tests/test_globmatch.js` (`node --test`, no npm install) - 15
+tests covering segment boundaries, `**` placement, dotfiles, classes
+(including `]` as the first member and `[z-a]` throwing a readable
+error), escapes, unclosed `[`/`{` staying literal, nested braces, the
+expansion cap, `./` prefixes, and basename mode. All passing. Also ran
+it against this repo's `git ls-files` for the examples in the doc.
+
 ## 2026-10-06
 
 Added `scripts/runlock.sh` — runs a command while holding a lock so
