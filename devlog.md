@@ -2,6 +2,35 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-10-13
+
+Added `scripts/ulid.py` - generates and decodes ULIDs, the 26-character
+IDs that start with a millisecond timestamp so they sort by creation
+time as plain text. I wanted something for log lines and job IDs where
+`sort` alone puts things in order, and where I can paste an ID and see
+when it was made (`ulid.py decode`).
+
+The part worth thinking about was what happens inside one millisecond.
+Rolling fresh randomness for each ID means two IDs from the same
+millisecond sort in random order, which defeats the point. So the
+generator remembers the last random value and adds one, and raises if
+the 80 bits ever run out instead of wrapping. A clock that steps back
+(NTP) is handled the same way: keep the old timestamp and keep
+counting, so order holds even if IDs run slightly ahead of the wall
+clock.
+
+The tests found a bug in my first version. Crockford says `O` should
+read as `0`, and I'd added that, but the "first character must be 0-7"
+overflow check ran before the swap, so `OOOO...` was rejected. 26 base32
+characters hold 130 bits and a ULID is 128, which is why that cap
+exists at all. Moved the swap ahead of the check.
+
+Added `tests/test_ulid.py` (`unittest`, 22 tests): the spec's example ID
+against its known timestamp, round-trips, sort order, the alias and
+overflow cases above, the generator with a fake clock for same-ms,
+backwards-clock and overflow, 2000 real IDs staying unique and sorted,
+and the CLI exit codes. All passing.
+
 ## 2026-10-07
 
 Added `scripts/globmatch.js` — matches path strings against shell-style

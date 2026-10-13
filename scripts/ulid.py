@@ -12,8 +12,9 @@ import time
 ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 _DECODE = {c: i for i, c in enumerate(ALPHABET)}
 # Crockford's spec: I and L read as 1, O reads as 0, so hand-copied IDs
-# survive. U is left out of the alphabet and stays invalid.
-_DECODE.update({"I": 1, "L": 1, "O": 0})
+# survive. They are swapped out before any range check, so "O..." is
+# treated as "0...". U is left out of the alphabet and stays invalid.
+_ALIASES = str.maketrans("ILO", "110")
 
 MAX_TIME = (1 << 48) - 1
 MAX_RANDOM = (1 << 80) - 1
@@ -41,7 +42,7 @@ def _decode(text):
 def _normalise(text):
     if not isinstance(text, str):
         raise ValueError(f"ULID must be a string, got {text!r}")
-    text = text.strip().upper()
+    text = text.strip().upper().translate(_ALIASES)
     if len(text) != ULID_LEN:
         raise ValueError(f"ULID must be {ULID_LEN} characters, got {len(text)}")
     # 26 chars hold 130 bits but a ULID is 128, so the first character
