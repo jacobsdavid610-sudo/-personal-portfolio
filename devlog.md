@@ -2,6 +2,24 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-10-19
+
+Added `scripts/slugify.js` - turns a title into a slug for a URL or
+filename (`Crème Brûlée & Co.` -> `creme-brulee-co`). I keep rewriting
+that three-line snippet and getting a different corner wrong each time,
+so I wrote it once with tests.
+
+Two things I'd have missed without tests. Stripping accents with NFKD
+handles `é` but not `ß` or `ø`, which don't decompose, so `Straße` came
+out as `strae` until I added a small table for them. And numbering
+duplicates (`-2`, `-3`) has to check against every slug already issued,
+otherwise a real title like `a 2` can collide with the generated `a-2`.
+It also trims the slug to make room for the suffix when there's a
+`--max-length`.
+
+Added `tests/test_slugify.js` (`node:test`, 20 tests) and
+`docs/slugify.md`.
+
 ## 2026-10-13
 
 Added `scripts/ulid.py` - generates and decodes ULIDs, the 26-character
