@@ -2,6 +2,22 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-10-20
+
+Added `scripts/numranges.py` - parses the `1-3,5,8-10` notation that
+print dialogs and cron fields use, and formats a list of numbers back
+into it. Wanted it as a shared piece instead of re-writing a quick
+parser every time a script takes a "which lines" argument.
+
+Decisions worth writing down: `5-3` is an error rather than a silent
+reversal, since it's almost always a typo; and `--limit` is checked
+against the end of each range *before* expanding, otherwise
+`1-999999999` builds a huge set and only then complains. A run of two
+formats as `4,5` because `4-5` isn't any shorter.
+
+Added `tests/test_numranges.py` (`unittest`, 18 tests) and
+`docs/numranges.md`.
+
 ## 2026-10-19
 
 Added `scripts/slugify.js` - turns a title into a slug for a URL or
