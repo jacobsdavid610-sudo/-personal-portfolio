@@ -2,6 +2,26 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-10-28
+
+Added `scripts/dotenv.py` - a proper `.env` parser. My three env scripts
+treat the file as lines of text, which breaks on `A="x # y"` or a value
+that refers to another variable, so I wanted one parser they could share.
+
+The decision that took the longest: what to do with a backslash. In
+double quotes `\n` and `\t` are real escapes, but `"C:\Users"` has to
+survive, so only the known escapes are translated and any other
+backslash is kept. My first comment in the code claimed `"C:\temp"`
+would stay as written, which is wrong, since `\t` is a tab; I only
+noticed because the test output showed a tab. Fixed the comment, and the
+docs now use `\Users` as the example.
+
+Expansion only looks at earlier lines, and a file value beats the process
+environment, so the result doesn't depend on what was exported at the
+time. Bad lines are errors with a line number rather than being skipped.
+
+Added `tests/test_dotenv.py` (`unittest`, 31 tests) and `docs/dotenv.md`.
+
 ## 2026-10-20
 
 Added `scripts/numranges.py` - parses the `1-3,5,8-10` notation that
