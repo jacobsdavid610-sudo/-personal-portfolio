@@ -2,6 +2,29 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-10-29
+
+Added `scripts/jsonflatten.js` - flattens nested JSON into path keys
+(`a.b[0]`) and back. I wanted greppable, diffable one-line-per-leaf
+output for config and API responses, but mainly I wanted the reverse to
+be exact, so a value can be edited and written back out.
+
+The tests caught two real bugs in my first parser. `a..b` was accepted,
+because I was tracking "is a key open" with a flag that got confused
+around the dot. I rewrote it as a small reader that takes one non-empty
+key at a time. And `{"": 1}` flattened to the same path (`""`) as a
+bare top-level `1`, so it came back wrong. I couldn't find an encoding
+for the empty key that didn't look odd, so `flatten` now throws on it
+and the docs say so.
+
+Two choices I'd make again: array indexes are `[n]` so the object
+`{"0": "x"}` and the array `["x"]` don't collide, and values are set with
+`defineProperty` so a `__proto__` key stays a normal key and can't
+change `Object.prototype`.
+
+Added `tests/test_jsonflatten.js` (`node:test`, 21 tests) and
+`docs/jsonflatten.md`.
+
 ## 2026-10-28
 
 Added `scripts/dotenv.py` - a proper `.env` parser. My three env scripts
