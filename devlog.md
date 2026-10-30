@@ -2,6 +2,30 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-10-30
+
+Added `scripts/hexdump.py` - a canonical hex dump (offset, hex bytes,
+ASCII gutter, repeated lines collapsed to `*`). `hexdump` and `xxd` aren't
+on every machine I use, and I wanted the output available from Python so a
+test can compare against it.
+
+The interesting part is that it streams. Reading in chunks means a line can
+straddle two reads, so a partial line is carried over, and the "same as the
+previous line" check has to survive the boundary too. The test I trust most
+runs one input at read sizes from 1 to 1000 bytes and demands identical
+output each time; that's the bug that would otherwise only show up on a
+large file.
+
+Smaller choices: offsets stay true when you skip bytes (`-s 2` starts at
+`00000002`), skipping works on a pipe by reading and discarding, and a
+short last line is never squeezed.
+
+One of my own tests was wrong first: I expected five output lines and the
+right count is four. The code was fine; I'd miscounted. Fixed the test, and
+removed another that compared a result to itself.
+
+Added `tests/test_hexdump.py` (`unittest`, 28 tests) and `docs/hexdump.md`.
+
 ## 2026-10-29
 
 Added `scripts/jsonflatten.js` - flattens nested JSON into path keys
