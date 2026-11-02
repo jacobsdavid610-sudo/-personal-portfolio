@@ -2,6 +2,33 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-02
+
+Added `scripts/duration.js` - parses `1h30m` into milliseconds and formats
+milliseconds back into `1h 30m`. Timeouts and cache lifetimes in config end
+up as numbers like `5400000` that nobody can read, and they're easy to get
+wrong by a factor of 1000 or 60.
+
+Choices I'd defend:
+
+- A bare number is an error. `90` could be 90 ms or 90 seconds, and
+  guessing is exactly how those factor-of-1000 mistakes happen. A unit is
+  always required.
+- `m` is minutes and `ms` is milliseconds, so the pattern tries `ms` first
+  and `1m1ms` comes out as 60001. Units are case sensitive, so `1M` is
+  rejected rather than read as minutes or months.
+- A repeated unit (`1h1h`) is an error. It's nearly always a typo and
+  adding it up would hide that.
+- No months or years: they aren't a fixed length, so there's no honest
+  number to give them.
+
+Floating point bit me a little: `0.1 * 1000` is `100.00000000000001`, so
+the parser sums everything and rounds once at the end. I also had to stop
+`-0s` coming back as `-0`, which fails a strict equality check.
+
+Added `tests/test_duration.js` (`node:test`, 36 tests) and
+`docs/duration.md`.
+
 ## 2026-10-30
 
 Added `scripts/hexdump.py` - a canonical hex dump (offset, hex bytes,
