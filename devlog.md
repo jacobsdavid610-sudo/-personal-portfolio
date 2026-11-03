@@ -2,6 +2,37 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-03
+
+Added `scripts/cidrmerge.py` - merges, subtracts and tests lists of IPv4 and
+IPv6 networks. Allow-lists grow by accretion (a /24, then its two /25
+halves, then one host inside it) and "everything except our private ranges"
+is miserable to work out by hand. `ipcalc.py` describes one subnet; this
+works on whole lists.
+
+Choices I'd defend:
+
+- Merge must never add or drop an address, so the test that matters
+  compares the complete address set before and after.
+- Adjacent isn't always mergeable. `10.0.1.0/24` and `10.0.2.0/24` touch
+  but aren't two halves of a /23, so they stay as two lines.
+- Subtracting only splits where it has to. Networks nest or don't overlap
+  at all, so a hole is outside, covers the whole network, or sits strictly
+  inside it. Only the last case needs `address_exclude`.
+- `-c ADDRESS` is silent and answers through the exit code, so it works in
+  an `if`. It looks at the result after `-x`, so "is this allowed once the
+  exceptions are removed" is a single command.
+- Bad input prints nothing: the whole list is parsed first, so a typo on
+  line 900 can't leave half a list behind.
+
+One of my own tests was wrong first. I wrote a garbled expectation for what
+is left of 10.0.0.0/24 after removing the first and last /26; 10.0.0.64-191
+isn't aligned to a /25, so two /26s is the right answer. The code was fine.
+Fixed the test.
+
+Added `tests/test_cidrmerge.py` (`unittest`, 56 tests) and
+`docs/cidrmerge.md`.
+
 ## 2026-11-02
 
 Added `scripts/duration.js` - parses `1h30m` into milliseconds and formats
