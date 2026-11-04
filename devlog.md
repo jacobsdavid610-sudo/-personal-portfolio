@@ -2,6 +2,37 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-04
+
+Added `scripts/backoff.js` - exponential backoff with jitter: a `delay()`
+function, a `retry()` helper that wraps an async function, and a small CLI
+that prints the schedule for a set of parameters. `retry.sh` covers the
+shell side; this is the JavaScript one. Retrying instantly hits the same
+overloaded service, and if every client backs off by the same amount they
+all return together, which is what jitter is for.
+
+Choices I'd defend:
+
+- The delay calculation is its own function, separate from the loop, so the
+  maths can be tested exactly. The random source and the sleep are
+  parameters, so none of the retry tests wait on a real clock (apart from
+  one that checks the default sleep really waits).
+- Jitter is applied after the cap. Otherwise a long run of retries clusters
+  just under `max`.
+- `factor ** attempt` overflows to `Infinity` for big attempt numbers, but
+  `Math.min(max, Infinity)` is `max`, so there's nothing to special-case.
+- The original error is rethrown, not wrapped, so callers can still check
+  `err.code`. `shouldRetry` stops non-transient failures (a 400) at once.
+- Aborting works while waiting, not only between attempts: it clears the
+  timer, so a cancelled operation doesn't sit out a 30 second wait.
+- The CLI prints the worst-case total, which answers "how long before this
+  gives up" before I put the numbers in config.
+
+While testing I noticed `-n 1000000000` would try to print a billion lines,
+so the CLI now caps retries at 1000 and has a test for it.
+
+Added `tests/test_backoff.js` (`node:test`, 37 tests) and `docs/backoff.md`.
+
 ## 2026-11-03
 
 Added `scripts/cidrmerge.py` - merges, subtracts and tests lists of IPv4 and

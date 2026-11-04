@@ -119,7 +119,9 @@ function main(argv) {
     }
   }
   try {
-    if (!Number.isInteger(opts.n) || opts.n < 0) throw new RangeError("retries must be a whole number >= 0");
+    if (!Number.isInteger(opts.n) || opts.n < 0 || opts.n > 1000) {
+      throw new RangeError("retries must be a whole number from 0 to 1000");
+    }
     checkOptions(opts);
     const rows = schedule(opts.n, opts);
     console.log(`jitter ${opts.jitter}: each wait is ${describe(opts.jitter)}`);
