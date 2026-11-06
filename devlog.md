@@ -2,6 +2,32 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-06
+
+Added `scripts/shellsplit.js` - splits a command line into words the way a
+POSIX shell does, and quotes words back into a line that splits to the same
+thing. Anything that takes a command as one string needs the first half
+(`str.split(" ")` dies on the first quoted space), and anything that builds
+a command from other people's words needs the second.
+
+Things I want to remember:
+
+- The property that matters is `split(join(words))` equals `words`. Besides a
+  list of awkward words, a test walks every string of up to four characters
+  over an alphabet of `a`, space, both quotes, backslash, `$` and newline.
+- Single quotes can't contain a single quote, so `quote` closes the quote,
+  writes `\'` and reopens it: `it's` becomes `'it'\''s'`.
+- Inside double quotes only `\"`, `\\`, `\$`, backtick and backslash-newline
+  are escapes; any other backslash stays, so `"C:\dir"` means what it says.
+- An empty quote is an empty word. It needs its own flag, because "the word
+  has no characters" and "there is no word" are different things.
+- Nothing is expanded (no variables, globs, tilde or comments), and an
+  unterminated quote or trailing backslash is an error naming the position
+  rather than a guess.
+- All the tests passed on the first run, which I don't trust, so I broke the
+  script twice: dropping `\"` from the double-quote escapes failed 2 tests,
+  and dropping the empty-word flag failed 10.
+
 ## 2026-11-04
 
 Added `scripts/backoff.js` - exponential backoff with jitter: a `delay()`
