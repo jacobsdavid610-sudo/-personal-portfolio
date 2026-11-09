@@ -2,6 +2,90 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-09
+
+Added `scripts/sparkline.py` - draws numbers as a one-line sparkline
+(`▁▅▂█`) or a small horizontal histogram. A column of numbers says little at
+a glance; the same numbers as a sparkline show the spike straight away, and
+it fits in a status line or a log message.
+
+Things I want to remember:
+
+- Levels are `floor(fraction * 8)` with the maximum clamped into the top
+  bar, so all eight bars cover equal slices. Scaling by 7 and rounding gives
+  the end bars half-size slices; a test checks the spread is even.
+- A flat series is drawn at mid height. Along the bottom it reads as "all
+  zero" instead of "nothing changed".
+- Gaps (`None`, NaN, `-`, an empty CSV field) stay in place as spaces, so the
+  line still lines up with time. Infinity is an error: there's no scale to
+  draw it on.
+- `squeeze` averages buckets with integer edges, so every value lands in
+  exactly one bucket even when the length doesn't divide evenly.
+- Histogram bars use eighth blocks, so a count of 3 against a top of 7 looks
+  different from 4.
+- The first test run had 6 failures, all mine: two wrong expectations
+  (2.25 cells is `██▎`, not `██▌`) and four CLI tests that forgot Windows
+  writes `\r\n` to stdout. Then I broke the script three ways (flat series at
+  the bottom, scaling by 7, rounded bucket edges) and each failed 2 to 6
+  tests.
+
+## 2026-11-06
+
+Added `scripts/shellsplit.js` - splits a command line into words the way a
+POSIX shell does, and quotes words back into a line that splits to the same
+thing. Anything that takes a command as one string needs the first half
+(`str.split(" ")` dies on the first quoted space), and anything that builds
+a command from other people's words needs the second.
+
+Things I want to remember:
+
+- The property that matters is `split(join(words))` equals `words`. Besides a
+  list of awkward words, a test walks every string of up to four characters
+  over an alphabet of `a`, space, both quotes, backslash, `$` and newline.
+- Single quotes can't contain a single quote, so `quote` closes the quote,
+  writes `\'` and reopens it: `it's` becomes `'it'\''s'`.
+- Inside double quotes only `\"`, `\\`, `\$`, backtick and backslash-newline
+  are escapes; any other backslash stays, so `"C:\dir"` means what it says.
+- An empty quote is an empty word. It needs its own flag, because "the word
+  has no characters" and "there is no word" are different things.
+- Nothing is expanded (no variables, globs, tilde or comments), and an
+  unterminated quote or trailing backslash is an error naming the position
+  rather than a guess.
+- All the tests passed on the first run, which I don't trust, so I broke the
+  script twice: dropping `\"` from the double-quote escapes failed 2 tests,
+  and dropping the empty-word flag failed 10.
+
+## 2026-11-04
+
+Added `scripts/backoff.js` - exponential backoff with jitter: a `delay()`
+function, a `retry()` helper that wraps an async function, and a small CLI
+that prints the schedule for a set of parameters. `retry.sh` covers the
+shell side; this is the JavaScript one. Retrying instantly hits the same
+overloaded service, and if every client backs off by the same amount they
+all return together, which is what jitter is for.
+
+Choices I'd defend:
+
+- The delay calculation is its own function, separate from the loop, so the
+  maths can be tested exactly. The random source and the sleep are
+  parameters, so none of the retry tests wait on a real clock (apart from
+  one that checks the default sleep really waits).
+- Jitter is applied after the cap. Otherwise a long run of retries clusters
+  just under `max`.
+- `factor ** attempt` overflows to `Infinity` for big attempt numbers, but
+  `Math.min(max, Infinity)` is `max`, so there's nothing to special-case.
+- The original error is rethrown, not wrapped, so callers can still check
+  `err.code`. `shouldRetry` stops non-transient failures (a 400) at once.
+- Aborting works while waiting, not only between attempts: it clears the
+  timer, so a cancelled operation doesn't sit out a 30 second wait.
+- The CLI prints the worst-case total, which answers "how long before this
+  gives up" before I put the numbers in config.
+
+While testing I noticed `-n 1000000000` would try to print a billion lines,
+so the CLI now caps retries at 1000 and has a test for it.
+
+Added `tests/test_backoff.js` (`node:test`, 37 tests) and `docs/backoff.md`.
+
 ## 2026-11-03
 
 Added `scripts/cidrmerge.py` - merges, subtracts and tests lists of IPv4 and
