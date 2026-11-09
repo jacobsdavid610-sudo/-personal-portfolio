@@ -2,6 +2,33 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-09
+
+Added `scripts/sparkline.py` - draws numbers as a one-line sparkline
+(`▁▅▂█`) or a small horizontal histogram. A column of numbers says little at
+a glance; the same numbers as a sparkline show the spike straight away, and
+it fits in a status line or a log message.
+
+Things I want to remember:
+
+- Levels are `floor(fraction * 8)` with the maximum clamped into the top
+  bar, so all eight bars cover equal slices. Scaling by 7 and rounding gives
+  the end bars half-size slices; a test checks the spread is even.
+- A flat series is drawn at mid height. Along the bottom it reads as "all
+  zero" instead of "nothing changed".
+- Gaps (`None`, NaN, `-`, an empty CSV field) stay in place as spaces, so the
+  line still lines up with time. Infinity is an error: there's no scale to
+  draw it on.
+- `squeeze` averages buckets with integer edges, so every value lands in
+  exactly one bucket even when the length doesn't divide evenly.
+- Histogram bars use eighth blocks, so a count of 3 against a top of 7 looks
+  different from 4.
+- The first test run had 6 failures, all mine: two wrong expectations
+  (2.25 cells is `██▎`, not `██▌`) and four CLI tests that forgot Windows
+  writes `\r\n` to stdout. Then I broke the script three ways (flat series at
+  the bottom, scaling by 7, rounded bucket edges) and each failed 2 to 6
+  tests.
+
 ## 2026-11-06
 
 Added `scripts/shellsplit.js` - splits a command line into words the way a
