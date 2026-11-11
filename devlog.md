@@ -2,6 +2,34 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-11
+
+Added `scripts/router.js` - matches URL paths against routes like
+`/users/:id` and `/files/*path`, and builds paths back from a pattern and
+its parameters. A chain of `if` checks lets the order decide: put
+`/users/:id` first and "new" becomes a user id.
+
+Things I want to remember:
+
+- Routes go in a tree and each segment tries static, then `:param`, then
+  `*wildcard`, so the order they're added in doesn't matter. A test adds the
+  same three routes in three orders.
+- When the specific branch leads nowhere it backs out: with `/users/new` and
+  `/users/:id/edit`, `/users/new/edit` is an edit of user "new". Backing out
+  has to drop the params it collected on the way.
+- Clashes fail at `add` time: `/a` vs `/a/`, `/f/*a` vs `/f/*b`, and
+  `/u/:id` vs `/u/:name/posts` (one of those names would never be filled).
+- Split on `/` first, then percent-decode each segment, so `%2F` stays
+  inside its parameter. Bad encoding or `//` is no match, never an
+  exception, so a hostile URL is a 404 rather than a 500.
+- `build` uses `encodeURIComponent` and a round-trip test checks that
+  matching a built path gives the params back.
+- All 30 tests passed first time, so I broke the script four ways (no
+  dropping of stale params, skipping empty segments, `encodeURI` in
+  `build`, no name-clash check); each failed 2 tests.
+- Git Bash rewrites `/users/new` into `C:/.../Git/users/new` before node
+  sees it. `MSYS_NO_PATHCONV=1` stops that; it's in the docs.
+
 ## 2026-11-09
 
 Added `scripts/sparkline.py` - draws numbers as a one-line sparkline
