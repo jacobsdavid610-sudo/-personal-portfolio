@@ -2,6 +2,28 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-12
+
+Added `scripts/totp.py` - HOTP and TOTP one-time codes, the six digits an
+authenticator app shows. It turns out to be an HMAC of a counter, four bytes
+picked out of it, and a remainder, and I wanted it small enough to read in
+one go.
+
+Things I want to remember:
+
+- The secret never goes on the command line (that ends up in `ps` and shell
+  history). It's read from stdin or from an environment variable named by
+  `-e`, and error messages never repeat it.
+- The truncation offset comes from the low nibble of the *last* HMAC byte.
+  Hard-coding byte 19 works for SHA-1 and quietly breaks SHA-256/512.
+- Codes are zero-padded strings: counter 2 at 10 digits is `0137359152`.
+- `verify` compares every step in the window with `hmac.compare_digest`,
+  even after a match, so timing doesn't reveal which step was close.
+- Test vectors were taken from the RFC text: all 10 from RFC 4226 and all 18
+  from RFC 6238 (three hashes, out to 2603). Everything passed first time,
+  so I broke it five ways (offset from byte 19, no top-bit mask, early return
+  in verify, no secret clean-up, no zero padding); each failed 1 to 17 tests.
+
 ## 2026-11-11
 
 Added `scripts/router.js` - matches URL paths against routes like
