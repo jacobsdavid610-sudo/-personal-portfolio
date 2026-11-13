@@ -184,11 +184,14 @@ function prepare(label) {
 
 // An `xn--` label decoded, refusing anything that isn't the one canonical
 // encoding of its result: pure ASCII (`xn--abc-`), upper case or
-// non-NFC text, or digits that encode differently.
+// non-NFC text, or digits that encode differently. DNS ignores ASCII case,
+// so the label is lower-cased first; otherwise `XN--MNCHEN-3YA` would come
+// back as `MüNCHEN`.
 function decodeLabel(label) {
-  const unicode = decode(label.slice(ACE.length));
+  const lower = label.toLowerCase();
+  const unicode = decode(lower.slice(ACE.length));
   if (isASCII(unicode)) throw new PunycodeError(`${label} encodes plain ASCII`);
-  if (ACE + encode(prepare(unicode)) !== label.toLowerCase()) {
+  if (ACE + encode(prepare(unicode)) !== lower) {
     throw new PunycodeError(`${label} is not a canonical encoding`);
   }
   return unicode;
