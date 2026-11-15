@@ -2,6 +2,40 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-13
+
+Added `scripts/punycode.js` - Punycode (RFC 3492) and the `xn--` wrapping
+around it, so `münchen.de` and `xn--mnchen-3ya.de` can be compared as the
+same name. Node's own `punycode` module is deprecated, and I wanted to see
+the algorithm rather than call `url.domainToASCII` blind.
+
+Things I want to remember:
+
+- Only the last `-` is the delimiter. Before it is ASCII copied as-is,
+  after it are the digits, and `-abc` has no basic part at all, so the `-`
+  is an invalid digit.
+- The RFC's sample (I) has one upper-case digit ("mixed-case
+  annotation"). My encoder writes lower case and the decoder reads either.
+- Decoding re-encodes the result and insists on getting the same label
+  back. Otherwise `xn--abc-`, or a non-NFC spelling of `münchen`, is a
+  second ASCII name for something, which is how look-alike checks get
+  dodged.
+- Lengths (63 per label, 253 per name) are checked on the ASCII form; 24
+  Korean characters are 73 once encoded.
+
+The tests caught one real bug: `toUnicode("XN--MNCHEN-3YA.de")` gave
+`MüNCHEN.de`. The canonical check compared lower-cased labels but decoded
+the original, so the upper-case basic part came through. It now lower-cases
+first, which is also what `url.domainToUnicode` does. Two other failures
+were my own wrong guesses in the tests (which `-` is the delimiter in
+`abc-a-b`, and how short 40 copies of `ü` encode).
+
+All 19 RFC samples are in the test, checked row by row against the RFC
+text, plus agreement with `url.domainToASCII` on 320 names. I broke the
+script six ways (no first-delta damping, no canonical check, lone
+surrogates allowed in either direction, no NFC, no lower-casing before
+decode); each failed 1 to 11 tests.
+
 ## 2026-11-12
 
 Added `scripts/totp.py` - HOTP and TOTP one-time codes, the six digits an
