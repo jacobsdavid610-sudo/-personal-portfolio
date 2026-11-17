@@ -2,6 +2,32 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-17
+
+Added `scripts/base32.js` - RFC 4648 Base32, both the usual alphabet and
+the "extended hex" one. TOTP secrets are written this way and I'd been
+treating them as opaque, so I wanted to see how the partial group at the
+end really works.
+
+Things I want to remember:
+
+- 5 bytes are exactly 40 bits and 8 characters. A last group of 1, 2, 3
+  or 4 bytes is 2, 4, 5 or 7 characters, so a body whose length is 1, 3 or 6
+  mod 8 can't be real and the decoder says so.
+- The leftover bits in the last character have to be zero. `MY` and `MZ`
+  both start with the byte for `f`; accepting both means one value has two
+  spellings. After one byte only `A`, `I`, `Q` and `Y` are legal.
+- JavaScript's bit operators are 32-bit, so a 40-bit group is a `BigInt`.
+- Padding is optional but, if present, has to be the exact count.
+- Upper-casing with `toUpperCase()` accepted a Turkish dotless `ı` as `I`.
+  Only ASCII `a-z` is folded now, and there's a test for it.
+
+All seven RFC vectors pass in both alphabets, and the output matches the
+system `base32` where there is one (not on this machine, so that test skips
+here). I broke it six ways (no trailing-bit check, no padding check, no
+length check, upper-casing everything, no padding on encode, unanchored
+padding regex); each failed 1 to 6 tests.
+
 ## 2026-11-13
 
 Added `scripts/punycode.js` - Punycode (RFC 3492) and the `xn--` wrapping
