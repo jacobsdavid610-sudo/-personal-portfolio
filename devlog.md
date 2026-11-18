@@ -2,6 +2,42 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-18
+
+Added `scripts/lzw.py` - LZW with variable-width codes, the algorithm
+behind GIF and `compress`. I wanted to understand why decoders for it are
+famously fiddly, so I wrote one that refuses anything the encoder wouldn't
+have produced.
+
+Things I want to remember:
+
+- The decoder is one table entry behind the encoder, so both sides take the
+  code width from the *encoder's* size; the decoder works it out as its own
+  size plus one (except right after CLEAR).
+- A code can name the entry being defined right now (`aaaa`): it's the
+  previous string plus its own first byte.
+- After the final data code the encoder has to count the entry the decoder
+  is about to add, before it writes END. Without that, it only breaks when the
+  last table size lands exactly on 511, 1023 or 2047, so random round trips
+  mostly won't catch it.
+- Reset at 4095 entries so no code ever needs 13 bits.
+- Reading the stream strictly (padding bits, trailing bytes, missing END)
+  gives every stream exactly one meaning.
+
+Mistakes in my own tests: I wrote `random.Random(4).randrange(256)` inside
+a generator, which re-seeds every byte and gave 20000 copies of `x`; the
+"widths grow" test noticed because the codes were 258, 259, 260 in a row.
+Also I guessed 6000 random bytes would fill the table (about 3300 entries,
+no) and that source code would compress to a quarter (it's 42% after
+resets). A first sweep over every prefix length took 80 seconds, so it now
+only visits the prefixes at each width boundary (4 seconds for the file).
+
+The classic Wikipedia code sequence matches once shifted for our numbering.
+I broke the script nine ways (width ignores the lag, no size bump before
+END, late CLEAR, no unknown-code case, no overflow check, trailing bytes,
+padding, CLEAR not resetting, no truncation check); eight failed at once, and
+the size bump needed the boundary test above.
+
 ## 2026-11-17
 
 Added `scripts/base32.js` - RFC 4648 Base32, both the usual alphabet and
