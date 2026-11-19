@@ -2,6 +2,39 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-19
+
+Added `scripts/crc.js` - CRCs from the Rocksoft parameter model, with 13
+common ones built in. "CRC-32" is a family: polynomial, starting value, bit
+reversal of input and output, and a final XOR all vary, and changing any one
+gives an unrelated number. I wanted one small engine that covers them all.
+
+Things I want to remember:
+
+- Reflected CRCs shift right through the bit-reversed polynomial; the
+  others shift left. The initial value has to be reversed too in the reflected
+  case, and if `refin` and `refout` disagree the register is reversed once at
+  the end.
+- 64-bit polynomials need `BigInt`; plain numbers are several times faster,
+  so widths up to 32 use them in the loop. 32-bit XORs go negative in
+  JavaScript, but the final `& mask` on a `BigInt` hides it.
+- The published check value (the CRC of `123456789`) is a good smoke test
+  and a weak one: no catalogued algorithm has an odd width, or `refin !=
+  refout`. So the tests carry a bit-at-a-time reference written from the
+  definition and compare it with the table engine on 84 random models (widths
+  from 8 to 64).
+- All 13 check values, `zlib.crc32` and the iSCSI vectors matched first
+  time; I'd braced for off-by-one-bit-order bugs and there weren't any.
+
+I broke the script ten ways. Seven failed tests (init not reflected,
+`refin != refout`, polynomial not reflected, 64-bit mask, hex padding, a
+stale chunk length in the file reader). The other three are equivalent
+mutations: dropping the unsigned fix and the output mask don't change any
+result because the `BigInt` `&` hides them, and moving the 32-bit boundary to
+31 only changes speed. A first run of the mutation loop hung because one
+mutant made the polynomial table loop forever; I stopped it and restored the
+file from git before going on.
+
 ## 2026-11-18
 
 Added `scripts/lzw.py` - LZW with variable-width codes, the algorithm
