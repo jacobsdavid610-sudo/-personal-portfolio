@@ -26,14 +26,14 @@ Things I want to remember:
 - All 13 check values, `zlib.crc32` and the iSCSI vectors matched first
   time; I'd braced for off-by-one-bit-order bugs and there weren't any.
 
-I broke the script ten ways. Seven failed tests (init not reflected,
-`refin != refout`, polynomial not reflected, 64-bit mask, hex padding, a
-stale chunk length in the file reader). The other three are equivalent
-mutations: dropping the unsigned fix and the output mask don't change any
-result because the `BigInt` `&` hides them, and moving the 32-bit boundary to
-31 only changes speed. A first run of the mutation loop hung because one
-mutant made the polynomial table loop forever; I stopped it and restored the
-file from git before going on.
+I broke the script nine ways that ran to completion. Six failed tests
+(init not reflected, `refin != refout`, polynomial not reflected, 64-bit
+mask, hex padding, a stale chunk length in the file reader). Three are
+equivalent mutations: dropping the 32-bit unsigned fix and the output mask
+change no result because the `BigInt` `&` hides it, and moving the 32-bit
+boundary to 31 only changes speed. Another mutant (polynomial not reflected
+in the first run) hung the loop; I stopped it and restored the file from git
+before going on.
 
 ## 2026-11-18
 
