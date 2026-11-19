@@ -31,9 +31,10 @@ I broke the script nine ways that ran to completion. Six failed tests
 mask, hex padding, a stale chunk length in the file reader). Three are
 equivalent mutations: dropping the 32-bit unsigned fix and the output mask
 change no result because the `BigInt` `&` hides it, and moving the 32-bit
-boundary to 31 only changes speed. Another mutant (polynomial not reflected
-in the first run) hung the loop; I stopped it and restored the file from git
-before going on.
+boundary to 31 only changes speed. The first mutation loop ran into the tool's time limit part way
+through, so I stopped it, restored the script from git and re-ran the rest
+with a per-run timeout; the polynomial mutant, which was running when it
+stalled, then failed one test normally, so I don't know what the stall was.
 
 ## 2026-11-18
 
