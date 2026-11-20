@@ -2,6 +2,29 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-20
+
+Added `scripts/sexpr.js` - an S-expression reader and printer, with errors that
+carry a line and column and a pretty printer that lays long lists out Lisp
+style. Atoms and lists are about as small as a syntax gets, so it was a good
+one to get exactly right.
+
+Things I want to remember:
+
+- Position tracking only stays honest if one function advances the cursor.
+  Everything goes through `next()`, which updates line and column, so an error
+  for an unclosed `(` can point back at the opening paren rather than at the
+  end of the file.
+- Deciding number vs symbol is the fiddly part: `+`, `-`, `1+` and `...` have
+  to stay symbols. A strict number pattern, and everything else bare is a
+  symbol, handles all of it.
+- The pretty printer only needs two layouts: head plus arguments lined up under
+  the first, or a plain stack when the head is a list. Atoms wider than the
+  width can't break, so the width is a target, not a guarantee, and the test
+  says so.
+- Round-tripping 300 random trees through print and parse caught nothing, but
+  it is what makes me trust the string escaping.
+
 ## 2026-11-19
 
 Added `scripts/crc.js` - CRCs from the Rocksoft parameter model, with 13
