@@ -2,6 +2,99 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-20
+
+Added `scripts/sexpr.js` - an S-expression reader and printer, with errors that
+carry a line and column and a pretty printer that lays long lists out Lisp
+style. Atoms and lists are about as small as a syntax gets, so it was a good
+one to get exactly right.
+
+Things I want to remember:
+
+- Position tracking only stays honest if one function advances the cursor.
+  Everything goes through `next()`, which updates line and column, so an error
+  for an unclosed `(` can point back at the opening paren rather than at the
+  end of the file.
+- Deciding number vs symbol is the fiddly part: `+`, `-`, `1+` and `...` have
+  to stay symbols. A strict number pattern, and everything else bare is a
+  symbol, handles all of it.
+- The pretty printer only needs two layouts: head plus arguments lined up under
+  the first, or a plain stack when the head is a list. Atoms wider than the
+  width can't break, so the width is a target, not a guarantee, and the test
+  says so.
+- Round-tripping 300 random trees through print and parse caught nothing, but
+  it is what makes me trust the string escaping.
+
+## 2026-11-19
+
+Added `scripts/crc.js` - CRCs from the Rocksoft parameter model, with 13
+common ones built in. "CRC-32" is a family: polynomial, starting value, bit
+reversal of input and output, and a final XOR all vary, and changing any one
+gives an unrelated number. I wanted one small engine that covers them all.
+
+Things I want to remember:
+
+- Reflected CRCs shift right through the bit-reversed polynomial; the
+  others shift left. The initial value has to be reversed too in the reflected
+  case, and if `refin` and `refout` disagree the register is reversed once at
+  the end.
+- 64-bit polynomials need `BigInt`; plain numbers are several times faster,
+  so widths up to 32 use them in the loop. 32-bit XORs go negative in
+  JavaScript, but the final `& mask` on a `BigInt` hides it.
+- The published check value (the CRC of `123456789`) is a good smoke test
+  and a weak one: no catalogued algorithm has an odd width, or `refin !=
+  refout`. So the tests carry a bit-at-a-time reference written from the
+  definition and compare it with the table engine on 84 random models (widths
+  from 8 to 64).
+- All 13 check values, `zlib.crc32` and the iSCSI vectors matched first
+  time; I'd braced for off-by-one-bit-order bugs and there weren't any.
+
+I broke the script nine ways that ran to completion. Six failed tests
+(init not reflected, `refin != refout`, polynomial not reflected, 64-bit
+mask, hex padding, a stale chunk length in the file reader). Three are
+equivalent mutations: dropping the 32-bit unsigned fix and the output mask
+change no result because the `BigInt` `&` hides it, and moving the 32-bit
+boundary to 31 only changes speed. The first mutation loop ran into the tool's time limit part way
+through, so I stopped it, restored the script from git and re-ran the rest
+with a per-run timeout; the polynomial mutant, which was running when it
+stalled, then failed one test normally, so I don't know what the stall was.
+
+## 2026-11-18
+
+Added `scripts/lzw.py` - LZW with variable-width codes, the algorithm
+behind GIF and `compress`. I wanted to understand why decoders for it are
+famously fiddly, so I wrote one that refuses anything the encoder wouldn't
+have produced.
+
+Things I want to remember:
+
+- The decoder is one table entry behind the encoder, so both sides take the
+  code width from the *encoder's* size; the decoder works it out as its own
+  size plus one (except right after CLEAR).
+- A code can name the entry being defined right now (`aaaa`): it's the
+  previous string plus its own first byte.
+- After the final data code the encoder has to count the entry the decoder
+  is about to add, before it writes END. Without that, it only breaks when the
+  last table size lands exactly on 511, 1023 or 2047, so random round trips
+  mostly won't catch it.
+- Reset at 4095 entries so no code ever needs 13 bits.
+- Reading the stream strictly (padding bits, trailing bytes, missing END)
+  gives every stream exactly one meaning.
+
+Mistakes in my own tests: I wrote `random.Random(4).randrange(256)` inside
+a generator, which re-seeds every byte and gave 20000 copies of `x`; the
+"widths grow" test noticed because the codes were 258, 259, 260 in a row.
+Also I guessed 6000 random bytes would fill the table (about 3300 entries,
+no) and that source code would compress to a quarter (it's 42% after
+resets). A first sweep over every prefix length took 80 seconds, so it now
+only visits the prefixes at each width boundary (4 seconds for the file).
+
+The classic Wikipedia code sequence matches once shifted for our numbering.
+I broke the script nine ways (width ignores the lag, no size bump before
+END, late CLEAR, no unknown-code case, no overflow check, trailing bytes,
+padding, CLEAR not resetting, no truncation check); eight failed at once, and
+the size bump needed the boundary test above.
+
 ## 2026-11-17
 
 Added `scripts/base32.js` - RFC 4648 Base32, both the usual alphabet and
