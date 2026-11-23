@@ -2,6 +2,26 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-23
+
+Added `scripts/semverrange.js` - npm-style semver ranges (caret, tilde,
+x-ranges, hyphen ranges, `||`) with a `satisfies`, `maxSatisfying` and a
+`--normalize` flag that shows what a shorthand expands to. `semver.py` already
+compares versions; this is the half that dependency files actually use.
+
+Things I want to remember:
+
+- Expand every shorthand into plain `>=`, `<`, `=` comparators and there is
+  only one matcher to get right. Caret is the fiddly one: the leftmost non-zero
+  part is frozen, so `^0.2.3` stops at `0.3.0` and `^0.0.3` at `0.0.4`.
+- Generated upper bounds need to be `<2.0.0-0`, not `<2.0.0`. `2.0.0-alpha`
+  sorts below `2.0.0`, so the plain form would let a prerelease of the next
+  major into `^1.2.3`.
+- The prerelease rule is per `||` branch: a prerelease version only matches a
+  set that itself names a prerelease of the same major.minor.patch.
+- `>1.2` is `>=1.3.0`, not `>1.2.0`; no version in 1.2.x is greater than
+  "1.2". Easy to get wrong, so it has its own test.
+
 ## 2026-11-20
 
 Added `scripts/sexpr.js` - an S-expression reader and printer, with errors that
