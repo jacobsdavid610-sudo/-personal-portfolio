@@ -103,7 +103,7 @@ exit 1
 node --test tests/test_msgpack.js
 ```
 
-63 tests: 41 byte-exact encodings on size boundaries (and every one decoded
+63 tests: 42 byte-exact encodings on size boundaries (and every one decoded
 back), 64-bit and BigInt edges, maps, a `__proto__` key, timestamps in all three
 forms, extensions of every size, truncated/trailing/invalid input, the depth
 limit, 400 random values round-tripping, and the CLI's output and exit codes.
