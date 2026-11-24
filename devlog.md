@@ -2,6 +2,29 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-24
+
+Added `scripts/msgpack.js` - a MessagePack encoder and strict decoder, with
+64-bit integers as `BigInt`, the timestamp extension, and a CLI that goes
+between JSON and hex. The spec fits on a page, and every format byte is really
+a question about where one size ends and the next begins.
+
+Things I want to remember:
+
+- Always pick the smallest form, so the same value has one encoding. The tests
+  sit on each boundary: 127/128, 255/256, 31/32 characters, 15/16 items.
+- Only safe integers go out as ints. `2**53` is a float64 on purpose, and `-0`
+  stays a float, otherwise it quietly becomes `0`.
+- Check a declared length against the bytes left before allocating or looping;
+  `dbffffffff` claims a 4 GB string and must fail as truncated, not try.
+- Put a nesting limit on both directions. A long run of `0x91` is a one-byte
+  array inside a one-byte array, and it blows the stack.
+- Build decoded objects with `defineProperty`: a `__proto__` key assigned
+  normally changes the prototype.
+- Two of my own tests were wrong first, not the code: a vector one byte short
+  and a "safe integer" I had mislabelled as a BigInt. Worth reading a failing
+  test before touching the code.
+
 ## 2026-11-23
 
 Added `scripts/semverrange.js` - npm-style semver ranges (caret, tilde,
