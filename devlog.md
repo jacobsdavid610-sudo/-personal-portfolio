@@ -2,6 +2,32 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-25
+
+Added `scripts/tarlite.js` - a small tar writer and reader, with an extractor
+that refuses names that could escape the target directory. tar is what
+everything else gets wrapped in, and "unpack an archive someone else made" is
+exactly where path traversal bugs live.
+
+Things I want to remember:
+
+- The header checksum includes itself: sum the block with the checksum field
+  counted as eight spaces, then write it as six octal digits, a NUL and a space.
+  Some old tars summed signed bytes, so the reader accepts both.
+- Name limits are in bytes, not characters. A 51-character name of `é` is 102
+  bytes and doesn't fit in the 100-byte field.
+- Long names come three ways: ustar's prefix field (written by tarlite), GNU
+  `L` entries and pax `path` records. The pax size and path apply to the next
+  entry only; I first wrote the size handling against the wrong header and had
+  to move it.
+- Validate every name before writing the first file, so a bad archive leaves
+  nothing behind, and never create links: that closes the symlink-then-write
+  trick.
+- Interop is the test that matters most. Running GNU tar on tarlite's output
+  and tarlite on GNU tar's four formats found one problem, and it was in the
+  test: Windows paths like `C:\...` after `-C` are read by GNU tar as a remote
+  host.
+
 ## 2026-11-24
 
 Added `scripts/msgpack.js` - a MessagePack encoder and strict decoder, with
