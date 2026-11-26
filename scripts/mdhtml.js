@@ -146,7 +146,7 @@ function inline(s) {
       const label = inline(s.slice(open + 1, close));
       const title = target.title === null ? "" : ` title="${esc(target.title)}"`;
       const url = esc(safeUrl(target.url));
-      out += image ? `<img src="${url}" alt="${esc(plainText(label))}"${title}>` : `<a href="${url}"${title}>${label}</a>`;
+      out += image ? `<img src="${url}" alt="${plainText(label)}"${title}>` : `<a href="${url}"${title}>${label}</a>`;
       i = target.end;
     } else if (c === "<") {
       const m = /^<([A-Za-z][A-Za-z0-9+.-]{1,31}:[^\s<>]*)>/.exec(s.slice(i));
