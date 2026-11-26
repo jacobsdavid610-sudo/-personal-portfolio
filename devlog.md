@@ -2,6 +2,32 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-26
+
+Added `scripts/mdhtml.js` - a Markdown-to-HTML converter for the subset that
+notes and READMEs actually use. The point was to make it small enough that
+"can the output ever contain a live tag?" has a short, testable answer.
+
+Things I want to remember:
+
+- Escape everything and allow nothing: all text goes through one escape
+  function, and the only tags in the output are ones the converter writes.
+- Link targets get a scheme allow-list (relative, http, https, mailto, ftp,
+  tel). Strip whitespace and control characters before checking, because
+  browsers ignore them inside a scheme, so `java<TAB>script:` still runs.
+- The word after a code fence ends up in a `class` attribute, so it is cut
+  down to word characters; otherwise it can carry a quote out of the attribute.
+- Parse inline in one left-to-right pass and recognise code spans and escapes
+  first, so a `**` inside backticks never opens emphasis. Underscores only
+  count at word edges, which keeps `snake_case_name` plain.
+- Real bug from the tests: image alt text was escaped twice (`&amp;quot;`).
+  The label is already escaped when I strip its tags, so it only needs doing
+  once.
+- The fuzz test is the one I trust most: 1,500 random strings of Markdown
+  punctuation, and every tag in the output must be on the converter's own list.
+  I wrote the loose-list expectations wrong first; it was the tests, not the
+  code.
+
 ## 2026-11-25
 
 Added `scripts/tarlite.js` - a small tar writer and reader, with an extractor
