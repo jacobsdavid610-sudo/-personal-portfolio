@@ -2,6 +2,28 @@
 
 Notes on what I actually worked on, in the order I did it. New entries go on top.
 
+## 2026-11-27
+
+Added `scripts/jsonpatch.js` - JSON Pointer and JSON Patch, plus a `diff` that
+builds a patch from two documents. I wanted the exact RFC behaviour in
+something short, and a diff so the two halves can check each other.
+
+Things I want to remember:
+
+- Pointer escapes decode `~1` first and `~0` second, so `~01` is the literal
+  text `~1`. Doing it the other way round turns it into `/`.
+- Array indices are strict: no leading zeros, no `-1`, and `-` only when
+  adding. An index past the end is an error instead of being quietly clamped.
+- `move` removes before it adds, so moving index 0 to index 2 of `[1,2,3,4]`
+  gives `[2,3,1,4]`. Moving a value into its own child has to be refused.
+- Lookups only see own properties, otherwise `/constructor` finds a function.
+  Writes go through `Object.defineProperty` so a `__proto__` key is data.
+- `apply` works on a clone and throws on the first failure, so a patch is
+  all-or-nothing. The error says which operation failed.
+- The fuzz is the check I trust: 2,000 random pairs, and `apply(a, diff(a, b))`
+  must equal `b` with `a` untouched. Remove array tails from the end first or
+  the later indices point at the wrong elements.
+
 ## 2026-11-26
 
 Added `scripts/mdhtml.js` - a Markdown-to-HTML converter for the subset that
